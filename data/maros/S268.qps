@@ -1,0 +1,79 @@
+NAME          S268
+ROWS
+ N  OBJ
+ G  R0
+ G  R1
+ G  R2
+ G  R3
+ G  R4
+ N  R5
+ N  R6
+ N  R7
+ N  R8
+ N  R9
+COLUMNS
+    C0  OBJ  18340.0
+    C0  R0  -1.0
+    C0  R1  10.0
+    C0  R2  -8.0
+    C0  R3  8.0
+    C0  R4  -4.0
+    C0  R5  1.0
+    C1  OBJ  -34198.0
+    C1  R0  -1.0
+    C1  R1  10.0
+    C1  R2  1.0
+    C1  R3  -1.0
+    C1  R4  -2.0
+    C1  R6  1.0
+    C2  OBJ  4542.0
+    C2  R0  -1.0
+    C2  R1  -3.0
+    C2  R2  -2.0
+    C2  R3  2.0
+    C2  R4  3.0
+    C2  R7  1.0
+    C3  OBJ  8672.0
+    C3  R0  -1.0
+    C3  R1  5.0
+    C3  R2  -5.0
+    C3  R3  5.0
+    C3  R4  -5.0
+    C3  R8  1.0
+    C4  OBJ  86.0
+    C4  R0  -1.0
+    C4  R1  4.0
+    C4  R2  3.0
+    C4  R3  -3.0
+    C4  R4  1.0
+    C4  R9  1.0
+RHS
+    RHS  OBJ  -14463.0
+    RHS  R0  -5.0
+    RHS  R1  20.0
+    RHS  R2  -40.0
+    RHS  R3  11.0
+    RHS  R4  -30.0
+BOUNDS
+ FR BND  C0
+ FR BND  C1
+ FR BND  C2
+ FR BND  C3
+ FR BND  C4
+QUADOBJ
+    C0  C0  20394.0
+    C0  C1  -24908.0
+    C1  C1  41818.0
+    C0  C2  -2026.0
+    C1  C2  -3466.0
+    C2  C2  3510.0
+    C0  C3  3896.0
+    C1  C3  -9828.0
+    C2  C3  2178.0
+    C3  C3  3030.0
+    C0  C4  658.0
+    C1  C4  -372.0
+    C2  C4  -348.0
+    C3  C4  -44.0
+    C4  C4  54.0
+ENDATA

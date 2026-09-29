@@ -1,0 +1,233 @@
+NAME          QAFIRO
+ROWS
+ N  OBJ
+ E  R0
+ E  R1
+ E  R2
+ E  R3
+ E  R4
+ E  R5
+ E  R6
+ E  R7
+ L  R8
+ L  R9
+ L  R10
+ L  R11
+ L  R12
+ L  R13
+ L  R14
+ L  R15
+ L  R16
+ L  R17
+ L  R18
+ L  R19
+ L  R20
+ L  R21
+ L  R22
+ L  R23
+ L  R24
+ L  R25
+ L  R26
+ G  R27
+ G  R28
+ G  R29
+ G  R30
+ G  R31
+ G  R32
+ G  R33
+ G  R34
+ G  R35
+ G  R36
+ G  R37
+ G  R38
+ G  R39
+ G  R40
+ G  R41
+ G  R42
+ G  R43
+ G  R44
+ G  R45
+ G  R46
+ G  R47
+ G  R48
+ G  R49
+ G  R50
+ G  R51
+ G  R52
+ G  R53
+ G  R54
+ G  R55
+ G  R56
+ G  R57
+ G  R58
+COLUMNS
+    C0  R0  -1.0
+    C0  R1  -1.06
+    C0  R15  1.0
+    C0  R23  0.301
+    C0  R27  1.0
+    C1  OBJ  -0.40000000000000036
+    C1  R0  1.0
+    C1  R14  -1.0
+    C1  R28  1.0
+    C2  R0  1.0
+    C2  R21  -1.0
+    C2  R29  1.0
+    C3  R1  1.0
+    C3  R25  1.0
+    C3  R30  1.0
+    C4  R4  -1.0
+    C4  R5  -1.06
+    C4  R11  1.0
+    C4  R24  0.301
+    C4  R31  1.0
+    C5  R4  -1.0
+    C5  R5  -1.06
+    C5  R10  1.0
+    C5  R24  0.313
+    C5  R32  1.0
+    C6  R4  -1.0
+    C6  R5  -0.96
+    C6  R8  1.0
+    C6  R24  0.313
+    C6  R33  1.0
+    C7  R4  -1.0
+    C7  R5  -0.86
+    C7  R9  1.0
+    C7  R24  0.326
+    C7  R34  1.0
+    C8  R11  -1.0
+    C8  R20  2.364
+    C8  R35  1.0
+    C9  R10  -1.0
+    C9  R20  2.386
+    C9  R36  1.0
+    C10  R8  -1.0
+    C10  R20  2.408
+    C10  R37  1.0
+    C11  R9  -1.0
+    C11  R20  2.429
+    C11  R38  1.0
+    C12  OBJ  -0.32
+    C12  R4  1.0
+    C12  R14  1.4
+    C12  R39  1.0
+    C13  R4  1.0
+    C13  R22  -1.0
+    C13  R40  1.0
+    C14  R5  1.0
+    C14  R26  1.0
+    C14  R41  1.0
+    C15  R6  -0.43
+    C15  R7  -1.0
+    C15  R12  1.0
+    C15  R21  0.109
+    C15  R42  1.0
+    C16  OBJ  -0.6
+    C16  R7  1.0
+    C16  R13  -1.0
+    C16  R43  1.0
+    C17  R7  1.0
+    C17  R23  -1.0
+    C17  R44  1.0
+    C18  R7  1.0
+    C18  R20  -1.0
+    C18  R45  1.0
+    C19  R6  1.0
+    C19  R25  1.0
+    C19  R46  1.0
+    C20  R2  1.0
+    C20  R3  -0.43
+    C20  R16  1.0
+    C20  R22  0.109
+    C20  R47  1.0
+    C21  R2  1.0
+    C21  R3  -0.43
+    C21  R17  1.0
+    C21  R22  0.108
+    C21  R48  1.0
+    C22  R2  1.0
+    C22  R3  -0.39
+    C22  R18  1.0
+    C22  R22  0.108
+    C22  R49  1.0
+    C23  R2  1.0
+    C23  R3  -0.37
+    C23  R19  1.0
+    C23  R22  0.107
+    C23  R50  1.0
+    C24  R16  -1.0
+    C24  R20  2.191
+    C24  R51  1.0
+    C25  R17  -1.0
+    C25  R20  2.219
+    C25  R52  1.0
+    C26  R18  -1.0
+    C26  R20  2.249
+    C26  R53  1.0
+    C27  R19  -1.0
+    C27  R20  2.279
+    C27  R54  1.0
+    C28  OBJ  -0.48
+    C28  R2  -1.0
+    C28  R13  1.4
+    C28  R55  1.0
+    C29  R2  1.0
+    C29  R24  -1.0
+    C29  R56  1.0
+    C30  R3  1.0
+    C30  R26  1.0
+    C30  R57  1.0
+    C31  OBJ  10.0
+    C31  R2  1.0
+    C31  R58  1.0
+RHS
+    RHS  R2  44.0
+    RHS  R3  -2.220446049250313e-16
+    RHS  R11  80.0
+    RHS  R12  500.0
+    RHS  R15  80.0
+    RHS  R16  500.0
+    RHS  R25  310.0
+    RHS  R26  300.0
+BOUNDS
+ FR BND  C0
+ FR BND  C1
+ FR BND  C2
+ FR BND  C3
+ FR BND  C4
+ FR BND  C5
+ FR BND  C6
+ FR BND  C7
+ FR BND  C8
+ FR BND  C9
+ FR BND  C10
+ FR BND  C11
+ FR BND  C12
+ FR BND  C13
+ FR BND  C14
+ FR BND  C15
+ FR BND  C16
+ FR BND  C17
+ FR BND  C18
+ FR BND  C19
+ FR BND  C20
+ FR BND  C21
+ FR BND  C22
+ FR BND  C23
+ FR BND  C24
+ FR BND  C25
+ FR BND  C26
+ FR BND  C27
+ FR BND  C28
+ FR BND  C29
+ FR BND  C30
+ FR BND  C31
+QUADOBJ
+    C0  C0  10.0
+    C0  C1  1.0
+    C1  C1  10.0
+    C0  C2  1.0
+    C1  C2  1.0
+    C2  C2  10.0
+ENDATA

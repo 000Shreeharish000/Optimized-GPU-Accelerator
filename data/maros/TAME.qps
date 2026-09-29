@@ -1,0 +1,21 @@
+NAME          TAME
+ROWS
+ N  OBJ
+ E  R0
+ G  R1
+ G  R2
+COLUMNS
+    C0  R0  1.0
+    C0  R1  1.0
+    C1  R0  1.0
+    C1  R2  1.0
+RHS
+    RHS  R0  1.0
+BOUNDS
+ FR BND  C0
+ FR BND  C1
+QUADOBJ
+    C0  C0  2.0
+    C0  C1  -2.0
+    C1  C1  2.0
+ENDATA

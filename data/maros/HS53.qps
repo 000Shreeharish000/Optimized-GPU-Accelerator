@@ -1,0 +1,56 @@
+NAME          HS53
+ROWS
+ N  OBJ
+ E  R0
+ E  R1
+ E  R2
+ L  R3
+ L  R4
+ L  R5
+ L  R6
+ L  R7
+COLUMNS
+    C0  R0  1.0
+    C0  R3  1.0
+    C1  OBJ  -4.0
+    C1  R0  3.0
+    C1  R2  1.0
+    C1  R4  1.0
+    C2  OBJ  -4.0
+    C2  R1  1.0
+    C2  R5  1.0
+    C3  OBJ  -2.0
+    C3  R1  1.0
+    C3  R6  1.0
+    C4  OBJ  -2.0
+    C4  R1  -2.0
+    C4  R2  -1.0
+    C4  R7  1.0
+RHS
+    RHS  OBJ  -6.0
+    RHS  R3  10.0
+    RHS  R4  10.0
+    RHS  R5  10.0
+    RHS  R6  10.0
+    RHS  R7  10.0
+RANGES
+    RNG  R3  20.0
+    RNG  R4  20.0
+    RNG  R5  20.0
+    RNG  R6  20.0
+    RNG  R7  20.0
+BOUNDS
+ FR BND  C0
+ FR BND  C1
+ FR BND  C2
+ FR BND  C3
+ FR BND  C4
+QUADOBJ
+    C0  C0  2.0
+    C0  C1  -2.0
+    C1  C1  4.0
+    C1  C2  2.0
+    C2  C2  2.0
+    C3  C3  2.0
+    C4  C4  2.0
+ENDATA

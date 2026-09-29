@@ -1,0 +1,199 @@
+NAME          HS118
+ROWS
+ N  OBJ
+ L  R0
+ L  R1
+ L  R2
+ L  R3
+ L  R4
+ L  R5
+ L  R6
+ L  R7
+ L  R8
+ L  R9
+ L  R10
+ L  R11
+ G  R12
+ G  R13
+ G  R14
+ G  R15
+ G  R16
+ L  R17
+ L  R18
+ L  R19
+ L  R20
+ L  R21
+ L  R22
+ L  R23
+ L  R24
+ L  R25
+ L  R26
+ L  R27
+ L  R28
+ L  R29
+ L  R30
+ L  R31
+COLUMNS
+    C0  OBJ  2.3
+    C0  R0  -1.0
+    C0  R12  1.0
+    C0  R17  1.0
+    C1  OBJ  1.7
+    C1  R2  -1.0
+    C1  R12  1.0
+    C1  R18  1.0
+    C2  OBJ  2.2
+    C2  R1  -1.0
+    C2  R12  1.0
+    C2  R19  1.0
+    C3  OBJ  2.3
+    C3  R0  1.0
+    C3  R3  -1.0
+    C3  R13  1.0
+    C3  R20  1.0
+    C4  OBJ  1.7
+    C4  R2  1.0
+    C4  R5  -1.0
+    C4  R13  1.0
+    C4  R21  1.0
+    C5  OBJ  2.2
+    C5  R1  1.0
+    C5  R4  -1.0
+    C5  R13  1.0
+    C5  R22  1.0
+    C6  OBJ  2.3
+    C6  R3  1.0
+    C6  R6  -1.0
+    C6  R14  1.0
+    C6  R23  1.0
+    C7  OBJ  1.7
+    C7  R5  1.0
+    C7  R8  -1.0
+    C7  R14  1.0
+    C7  R24  1.0
+    C8  OBJ  2.2
+    C8  R4  1.0
+    C8  R7  -1.0
+    C8  R14  1.0
+    C8  R25  1.0
+    C9  OBJ  2.3
+    C9  R6  1.0
+    C9  R9  -1.0
+    C9  R15  1.0
+    C9  R26  1.0
+    C10  OBJ  1.7
+    C10  R8  1.0
+    C10  R11  -1.0
+    C10  R15  1.0
+    C10  R27  1.0
+    C11  OBJ  2.2
+    C11  R7  1.0
+    C11  R10  -1.0
+    C11  R15  1.0
+    C11  R28  1.0
+    C12  OBJ  2.3
+    C12  R9  1.0
+    C12  R16  1.0
+    C12  R29  1.0
+    C13  OBJ  1.7
+    C13  R11  1.0
+    C13  R16  1.0
+    C13  R30  1.0
+    C14  OBJ  2.2
+    C14  R10  1.0
+    C14  R16  1.0
+    C14  R31  1.0
+RHS
+    RHS  R0  6.0
+    RHS  R1  6.0
+    RHS  R2  7.0
+    RHS  R3  6.0
+    RHS  R4  6.0
+    RHS  R5  7.0
+    RHS  R6  6.0
+    RHS  R7  6.0
+    RHS  R8  7.0
+    RHS  R9  6.0
+    RHS  R10  6.0
+    RHS  R11  7.0
+    RHS  R12  60.0
+    RHS  R13  50.0
+    RHS  R14  70.0
+    RHS  R15  85.0
+    RHS  R16  100.0
+    RHS  R17  21.0
+    RHS  R18  57.0
+    RHS  R19  16.0
+    RHS  R20  90.0
+    RHS  R21  120.0
+    RHS  R22  60.0
+    RHS  R23  90.0
+    RHS  R24  120.0
+    RHS  R25  60.0
+    RHS  R26  90.0
+    RHS  R27  120.0
+    RHS  R28  60.0
+    RHS  R29  90.0
+    RHS  R30  120.0
+    RHS  R31  60.0
+RANGES
+    RNG  R0  13.0
+    RNG  R1  13.0
+    RNG  R2  14.0
+    RNG  R3  13.0
+    RNG  R4  13.0
+    RNG  R5  14.0
+    RNG  R6  13.0
+    RNG  R7  13.0
+    RNG  R8  14.0
+    RNG  R9  13.0
+    RNG  R10  13.0
+    RNG  R11  14.0
+    RNG  R17  13.0
+    RNG  R18  14.0
+    RNG  R19  13.0
+    RNG  R20  90.0
+    RNG  R21  120.0
+    RNG  R22  60.0
+    RNG  R23  90.0
+    RNG  R24  120.0
+    RNG  R25  60.0
+    RNG  R26  90.0
+    RNG  R27  120.0
+    RNG  R28  60.0
+    RNG  R29  90.0
+    RNG  R30  120.0
+    RNG  R31  60.0
+BOUNDS
+ FR BND  C0
+ FR BND  C1
+ FR BND  C2
+ FR BND  C3
+ FR BND  C4
+ FR BND  C5
+ FR BND  C6
+ FR BND  C7
+ FR BND  C8
+ FR BND  C9
+ FR BND  C10
+ FR BND  C11
+ FR BND  C12
+ FR BND  C13
+ FR BND  C14
+QUADOBJ
+    C0  C0  0.0002
+    C1  C1  0.0002
+    C2  C2  0.0003
+    C3  C3  0.0002
+    C4  C4  0.0002
+    C5  C5  0.0003
+    C6  C6  0.0002
+    C7  C7  0.0002
+    C8  C8  0.0003
+    C9  C9  0.0002
+    C10  C10  0.0002
+    C11  C11  0.0003
+    C12  C12  0.0002
+    C13  C13  0.0002
+    C14  C14  0.0003
+ENDATA
