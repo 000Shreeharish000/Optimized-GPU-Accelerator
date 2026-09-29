@@ -1,0 +1,17 @@
+NAME          QPOFF
+ROWS
+ N  OBJ
+ G  R1
+COLUMNS
+    X  OBJ  -1.0  R1  1.0
+    Y  OBJ  -1.0  R1  1.0
+RHS
+    RHS  R1  1.0
+BOUNDS
+ UP BND  X  10
+ UP BND  Y  10
+QUADOBJ
+    X  X  2.0
+    X  Y  1.0
+    Y  Y  2.0
+ENDATA

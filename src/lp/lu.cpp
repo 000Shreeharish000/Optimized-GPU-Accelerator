@@ -1,6 +1,7 @@
 #include "lp/lu.h"
 
 #include <algorithm>
+#include <functional>
 #include <cmath>
 #include <utility>
 
@@ -256,6 +257,9 @@ int LuFactor::factorize(const std::vector<int>& basicIndex) {
   posStep_.assign(m, -1);
   for (int k = 0; k < K; ++k) posStep_[pivotPos_[k]] = k;
   buildUColumns();
+  buildHyperSparse();
+  pmark_.assign(m, 0);
+  pstamp_ = 0;
   stats.lNnz = static_cast<long long>(lIndex_.size());
   stats.uNnz = static_cast<long long>(uIndex_.size()) + K;
   stats.bumpSize = bump;
@@ -285,7 +289,7 @@ void LuFactor::buildUColumns() {
     }
 }
 
-void LuFactor::ftran(HVector& v) const {
+void LuFactor::ftranDense(HVector& v) const {
   double* b = v.array.data();
   const int K = static_cast<int>(pivotRow_.size());
   // Forward elimination with L.
@@ -323,7 +327,7 @@ void LuFactor::ftran(HVector& v) const {
   v.rebuildIndex(1e-14);
 }
 
-void LuFactor::btran(HVector& v) const {
+void LuFactor::btranDense(HVector& v) const {
   double* e = v.array.data();
   const int T = static_cast<int>(etaPos_.size());
   for (int t = T - 1; t >= 0; --t) {
@@ -353,6 +357,210 @@ void LuFactor::btran(HVector& v) const {
   }
   v.array.swap(work_);
   v.rebuildIndex(1e-14);
+}
+
+// ---------------------------------------------------------------------------
+// Hyper-sparse triangular solves (Gilbert-Peierls reach + Hall-McKinnon): for a
+// right-hand side with few nonzeros only the pivots reachable in the L / U
+// dependency graphs are visited, so a solve costs O(reach) instead of O(m).
+// ---------------------------------------------------------------------------
+void LuFactor::buildHyperSparse() {
+  const int K = static_cast<int>(pivotRow_.size());
+  rowStep_.assign(m_, -1);
+  for (int k = 0; k < K; ++k) rowStep_[pivotRow_[k]] = k;
+  // Row-wise L (for the scatter form of L^T): for the step s of row r, the list of
+  // (step k, l) such that L_k has an entry in row r.
+  lrStart_.assign(K + 1, 0);
+  for (int k = 0; k < K; ++k)
+    for (int e = lStart_[k]; e < lStart_[k + 1]; ++e) {
+      int s = rowStep_[lIndex_[e]];
+      if (s >= 0) lrStart_[s + 1]++;
+    }
+  for (int s = 0; s < K; ++s) lrStart_[s + 1] += lrStart_[s];
+  lrStep_.assign(lrStart_[K], 0);
+  lrValue_.assign(lrStart_[K], 0.0);
+  std::vector<int> pos(lrStart_.begin(), lrStart_.end() - 1);
+  for (int k = 0; k < K; ++k)
+    for (int e = lStart_[k]; e < lStart_[k + 1]; ++e) {
+      int s = rowStep_[lIndex_[e]];
+      if (s < 0) continue;
+      int q = pos[s]++;
+      lrStep_[q] = k;
+      lrValue_[q] = lValue_[e];
+    }
+  visit_.assign(K, 0);
+  stamp_ = 0;
+  hyperOk_ = K == m_;
+}
+
+// Steps reachable from `seeds` (steps) along edges given by `next(k, fn)`; result unsorted.
+template <class Next>
+void LuFactor::reach(std::vector<int>& seeds, std::vector<int>& out, Next next) const {
+  if (++stamp_ == 0x7fffffff) {
+    std::fill(visit_.begin(), visit_.end(), 0);
+    stamp_ = 1;
+  }
+  out.clear();
+  std::vector<int>& stack = dfsStack_;
+  stack.clear();
+  for (int s : seeds) {
+    if (s < 0 || visit_[s] == stamp_) continue;
+    visit_[s] = stamp_;
+    stack.push_back(s);
+    while (!stack.empty()) {
+      int k = stack.back();
+      stack.pop_back();
+      out.push_back(k);
+      next(k, [&](int t) {
+        if (t >= 0 && visit_[t] != stamp_) {
+          visit_[t] = stamp_;
+          stack.push_back(t);
+        }
+      });
+    }
+  }
+}
+
+void LuFactor::ftranHyper(HVector& v) const {
+  double* b = v.array.data();
+  std::vector<int>& seeds = seeds_;
+  seeds.clear();
+  for (int q = 0; q < v.count; ++q) seeds.push_back(rowStep_[v.index[q]]);
+  // L phase: steps reachable through L columns (edges k -> steps of rows in L_k).
+  reach(seeds, order_, [&](int k, auto&& push) {
+    for (int e = lStart_[k]; e < lStart_[k + 1]; ++e) push(rowStep_[lIndex_[e]]);
+  });
+  std::sort(order_.begin(), order_.end());
+  for (int k : order_) {
+    double br = b[pivotRow_[k]];
+    if (br == 0.0) continue;
+    for (int e = lStart_[k]; e < lStart_[k + 1]; ++e) b[lIndex_[e]] -= lValue_[e] * br;
+  }
+  // U phase (column oriented, edges k -> earlier steps in U column k).
+  seeds.swap(order_);
+  reach(seeds, order_, [&](int k, auto&& push) {
+    for (int e = ucStart_[k]; e < ucStart_[k + 1]; ++e) push(ucIndex_[e]);
+  });
+  std::sort(order_.begin(), order_.end(), std::greater<int>());
+  double* x = work_.data();
+  std::vector<int>& idx = outIdx_;
+  idx.clear();
+  for (int k : order_) {
+    int r = pivotRow_[k];
+    double br = b[r];
+    if (br == 0.0) continue;
+    b[r] = 0.0;
+    double xv = br / pivotValue_[k];
+    x[pivotPos_[k]] = xv;
+    idx.push_back(pivotPos_[k]);
+    for (int e = ucStart_[k]; e < ucStart_[k + 1]; ++e) b[pivotRow_[ucIndex_[e]]] -= ucValue_[e] * xv;
+  }
+  v.array.swap(work_);
+  double* y = v.array.data();
+  // PFI etas may create new nonzeros: track them with a position mark.
+  if (++pstamp_ == 0x7fffffff) {
+    std::fill(pmark_.begin(), pmark_.end(), 0);
+    pstamp_ = 1;
+  }
+  for (int p : idx) pmark_[p] = pstamp_;
+  const int T = static_cast<int>(etaPos_.size());
+  for (int t = 0; t < T; ++t) {
+    int p = etaPos_[t];
+    double xp = y[p];
+    if (xp == 0.0) continue;
+    xp /= etaPivot_[t];
+    y[p] = xp;
+    for (int e = etaStart_[t]; e < etaStart_[t + 1]; ++e) {
+      int i = etaIndex_[e];
+      y[i] -= etaValue_[e] * xp;
+      if (pmark_[i] != pstamp_) {
+        pmark_[i] = pstamp_;
+        idx.push_back(i);
+      }
+    }
+  }
+  v.count = 0;
+  for (int p : idx) {
+    if (std::fabs(y[p]) <= 1e-14) y[p] = 0.0;
+    else v.index[v.count++] = p;
+  }
+}
+
+void LuFactor::btranHyper(HVector& v) const {
+  double* e = v.array.data();
+  std::vector<int>& idx = outIdx_;
+  idx.clear();
+  if (++pstamp_ == 0x7fffffff) {
+    std::fill(pmark_.begin(), pmark_.end(), 0);
+    pstamp_ = 1;
+  }
+  for (int q = 0; q < v.count; ++q) {
+    idx.push_back(v.index[q]);
+    pmark_[v.index[q]] = pstamp_;
+  }
+  const int T = static_cast<int>(etaPos_.size());
+  for (int t = T - 1; t >= 0; --t) {
+    int p = etaPos_[t];
+    double s = e[p];
+    for (int q = etaStart_[t]; q < etaStart_[t + 1]; ++q) s -= etaValue_[q] * e[etaIndex_[q]];
+    s /= etaPivot_[t];
+    e[p] = s;
+    if (s != 0.0 && pmark_[p] != pstamp_) {
+      pmark_[p] = pstamp_;
+      idx.push_back(p);
+    }
+  }
+  // U^T phase: steps reachable along U rows (edges k -> later steps of positions in U row k).
+  std::vector<int>& seeds = seeds_;
+  seeds.clear();
+  for (int p : idx) seeds.push_back(posStep_[p]);
+  reach(seeds, order_, [&](int k, auto&& push) {
+    for (int q = uStart_[k]; q < uStart_[k + 1]; ++q) push(posStep_[uIndex_[q]]);
+  });
+  std::sort(order_.begin(), order_.end());
+  double* w = work_.data();
+  for (int k : order_) {
+    int c = pivotPos_[k];
+    double val = e[c];
+    if (val == 0.0) continue;
+    e[c] = 0.0;
+    double wv = val / pivotValue_[k];
+    w[pivotRow_[k]] = wv;
+    for (int q = uStart_[k]; q < uStart_[k + 1]; ++q) e[uIndex_[q]] -= uValue_[q] * wv;
+  }
+  // L^T phase, scatter form with row-wise L: edges s -> steps k whose L column hits row r_s.
+  seeds.swap(order_);
+  reach(seeds, order_, [&](int s, auto&& push) {
+    for (int q = lrStart_[s]; q < lrStart_[s + 1]; ++q) push(lrStep_[q]);
+  });
+  std::sort(order_.begin(), order_.end(), std::greater<int>());
+  for (int s : order_) {
+    double ws = w[pivotRow_[s]];
+    if (ws == 0.0) continue;
+    for (int q = lrStart_[s]; q < lrStart_[s + 1]; ++q) w[pivotRow_[lrStep_[q]]] -= lrValue_[q] * ws;
+  }
+  v.array.swap(work_);
+  double* y = v.array.data();
+  v.count = 0;
+  for (int s : order_) {
+    int r = pivotRow_[s];
+    if (std::fabs(y[r]) <= 1e-14) y[r] = 0.0;
+    else v.index[v.count++] = r;
+  }
+}
+
+// The hyper-sparse path pays off only when the RESULT is sparse; its density is
+// predicted from a running average of recent results (as in production codes).
+void LuFactor::ftran(HVector& v, bool sparseInput) const {
+  if (sparseInput && hyperOk_ && v.count <= hyperDensity * m_ && ftranDensity_ < hyperDensity) ftranHyper(v);
+  else ftranDense(v);
+  if (sparseInput && m_ > 0) ftranDensity_ = 0.9 * ftranDensity_ + 0.1 * (static_cast<double>(v.count) / m_);
+}
+
+void LuFactor::btran(HVector& v, bool sparseInput) const {
+  if (sparseInput && hyperOk_ && v.count <= hyperDensity * m_ && btranDensity_ < hyperDensity) btranHyper(v);
+  else btranDense(v);
+  if (sparseInput && m_ > 0) btranDensity_ = 0.9 * btranDensity_ + 0.1 * (static_cast<double>(v.count) / m_);
 }
 
 void LuFactor::update(const HVector& column, int pos) {

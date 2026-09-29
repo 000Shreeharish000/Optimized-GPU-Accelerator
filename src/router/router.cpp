@@ -2,7 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "util/log.h"
 
@@ -98,7 +104,29 @@ Router::Router() {
       {-6.0, 0.20, 0.35, 0.00, 0.05, 0.15, 0.30, 0.00},    // pdhg-gpu (launch-latency floor)
   };
   const char* env = std::getenv("PRAMANA_ROUTER_MODEL");
-  if (env) load(env);
+  if (env) {
+    load(env);
+    return;
+  }
+  // A calibrated model next to the executable (written by bench/fit_router.py).
+#ifdef _WIN32
+  char path[4096] = {};
+  DWORD len = GetModuleFileNameA(nullptr, path, sizeof(path));
+  std::string exe(path, len);
+#else
+  char path[4096] = {};
+  ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+  std::string exe(path, len > 0 ? static_cast<size_t>(len) : 0);
+#endif
+  size_t slash = exe.find_last_of("\\/");
+  if (slash != std::string::npos) {
+    std::string candidate = exe.substr(0, slash + 1) + "router_model.json";
+    std::FILE* f = std::fopen(candidate.c_str(), "rb");
+    if (f) {
+      std::fclose(f);
+      load(candidate);
+    }
+  }
 }
 
 bool Router::load(const std::string& path) {

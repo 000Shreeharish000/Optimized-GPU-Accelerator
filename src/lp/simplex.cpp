@@ -1,6 +1,7 @@
 #include "lp/simplex.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 #include "cert/certifier.h"
@@ -11,6 +12,13 @@ namespace pramana {
 
 namespace {
 inline bool finite(double v) { return std::fabs(v) < kInfBoundThreshold; }
+using Clock = std::chrono::steady_clock;
+// Adds the time since `t` to `acc` and restarts `t` (cheap per-phase profiling).
+inline void lap(Clock::time_point& t, double& acc) {
+  auto now = Clock::now();
+  acc += std::chrono::duration<double>(now - t).count();
+  t = now;
+}
 }  // namespace
 
 Simplex::Simplex(const Model& lp, const SimplexOptions& opts) : opt_(opts), rng_(opts.seed) {
@@ -124,7 +132,9 @@ void Simplex::initSlackBasis() {
 
 bool Simplex::factor() {
   for (int attempt = 0; attempt < 4; ++attempt) {
+    auto t0 = Clock::now();
     int def = lu_.factorize(basicIndex_);
+    lap(t0, stats_.tFactor);
     stats_.refactorizations++;
     if (def == 0) {
       factored_ = true;
@@ -180,6 +190,7 @@ void Simplex::computePrimal() {
   lu_.ftran(col_);
   for (int p = 0; p < m_; ++p) value_[basicIndex_[p]] = col_.array[p];
   col_.clear();
+  refreshAllInfeas();
 }
 
 void Simplex::computeDual() {
@@ -401,6 +412,7 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
   std::vector<char> taboo(m_, 0);
   int tabooCount = 0;
   int allTabooEvents = 0;
+  refreshAllInfeas();  // values may have changed outside the dual phase
   double stallBest = -kInf, stallFactor = 1.0;
   long long stallIter = stats_.iterations;
   struct Cand {
@@ -428,17 +440,15 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
       }
     }
 
+    auto tick = Clock::now();
     // ---- CHUZR: dual steepest edge ----
     int p = -1;
     double best = 0;
+    const double* inf2 = infeas_.data();
+    const double* dw = dseWeight_.data();
     for (int i = 0; i < m_; ++i) {
-      if (taboo[i]) continue;
-      int v = basicIndex_[i];
-      double x = value_[v], inf;
-      if (x < lower_[v] - tolP_[v]) inf = lower_[v] - x;
-      else if (x > upper_[v] + tolP_[v]) inf = x - upper_[v];
-      else continue;
-      double score = inf * inf / dseWeight_[i];
+      if (inf2[i] == 0.0 || taboo[i]) continue;
+      double score = inf2[i] / dw[i];
       if (score > best) {
         best = score;
         p = i;
@@ -464,17 +474,20 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
     const int moveOut = xl < lower_[leave] ? -1 : 1;
     double delta = moveOut < 0 ? xl - lower_[leave] : xl - upper_[leave];
 
+    lap(tick, stats_.tChuzr);
     // ---- BTRAN ----
     rho_.clear();
     rho_.array[p] = 1.0;
     rho_.index[0] = p;
     rho_.count = 1;
-    lu_.btran(rho_);
+    lu_.btran(rho_, true);
     const double wp = std::max(rho_.norm2sq(), 1e-12);
     dseWeight_[p] = wp;
 
+    lap(tick, stats_.tBtran);
     // ---- PRICE ----
     priceRow(rho_, rowAp_, rowIdx_);
+    lap(tick, stats_.tPrice);
 
     // ---- CHUZC: bound-flipping ratio test with Harris tolerance ----
     cands.clear();
@@ -555,9 +568,10 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
       continue;
     }
 
+    lap(tick, stats_.tChuzc);
     // ---- FTRAN entering column + stability check ----
     columnOf(enter, col_);
-    lu_.ftran(col_);
+    lu_.ftran(col_, true);
     const double alphaCol = col_.array[p];
     const double alphaRow = rowAp_[enter];
     const double err = std::fabs(alphaCol - alphaRow);
@@ -637,19 +651,24 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
       for (int k = 0; k < flipCol_.count; ++k) {
         int pos = flipCol_.index[k];
         value_[basicIndex_[pos]] -= flipCol_.array[pos];
+        refreshInfeas(pos);
       }
       flipCol_.clear();
       stats_.boundFlips += static_cast<long long>(flips.size());
     }
 
+    lap(tick, stats_.tUpdate);
     // ---- DSE: tau = B^{-1} rho ----
     tau_.clear();
     for (int k = 0; k < rho_.count; ++k) {
       int i = rho_.index[k];
       tau_.array[i] = rho_.array[i];
+      tau_.index[k] = i;
     }
-    lu_.ftran(tau_);
+    tau_.count = rho_.count;
+    lu_.ftran(tau_, true);
 
+    lap(tick, stats_.tFtran);
     // ---- Primal step ----
     const double bound = moveOut < 0 ? lower_[leave] : upper_[leave];
     delta = value_[leave] - bound;
@@ -658,6 +677,7 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
     for (int k = 0; k < col_.count; ++k) {
       int pos = col_.index[k];
       value_[basicIndex_[pos]] -= thetaP * col_.array[pos];
+      refreshInfeas(pos);
     }
     value_[enter] += thetaP;
     value_[leave] = bound;
@@ -675,6 +695,7 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
 
     // ---- Basis change ----
     updateBasis(p, enter, col_);
+    refreshInfeas(p);
     if (lower_[leave] == upper_[leave]) move_[leave] = 0;
     else move_[leave] = static_cast<int8_t>(moveOut < 0 ? 1 : -1);
     col_.clear();
@@ -704,6 +725,7 @@ Simplex::PhaseResult Simplex::dualPhase2(bool phase1) {
         }
       }
     }
+    lap(tick, stats_.tUpdate);
     logIteration(phase1 ? "dual-1" : "dual");
   }
 }
@@ -796,7 +818,7 @@ Simplex::PhaseResult Simplex::primalPhase2() {
 
     // ---- FTRAN ----
     columnOf(q, col_);
-    lu_.ftran(col_);
+    lu_.ftran(col_, true);
 
     // ---- Harris ratio test ----
     double thMax = kInf;
@@ -873,7 +895,7 @@ Simplex::PhaseResult Simplex::primalPhase2() {
     rho_.array[p] = 1.0;
     rho_.index[0] = p;
     rho_.count = 1;
-    lu_.btran(rho_);
+    lu_.btran(rho_, true);
     priceRow(rho_, rowAp_, rowIdx_);
     const double alphaCol = col_.array[p];
     const double alphaRow = q >= n_ ? rho_.array[q - n_] : rowAp_[q];

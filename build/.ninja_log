@@ -1,8 +1,8 @@
 # ninja log v7
-28	73	8123629859913004	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-78	242	8123596691065136	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
-163	248	8123596691923412	CMakeFiles/pramana.dir/src/api/c_api.cpp.obj	bef04c5561358304
-179	258	8123596692087715	CMakeFiles/pramana_tests.dir/tests/cpp/test_main.cpp.obj	4e06df093e6673d9
+6	33	8123749040236239	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+40	2944	8123749040571083	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
+145	2710	8123720557952834	CMakeFiles/pramana.dir/src/api/c_api.cpp.obj	bef04c5561358304
+69	1205	8123736753256413	CMakeFiles/pramana_tests.dir/tests/cpp/test_main.cpp.obj	4e06df093e6673d9
 125	1188	8123596691552998	CMakeFiles/pramana_core.dir/src/lp/scaling.cpp.obj	f7f013253b9793cc
 147	1191	8123596691768236	CMakeFiles/pramana_core.dir/src/util/log.cpp.obj	81ba5dc981848ce7
 98	1240	8123596691286101	CMakeFiles/pramana_core.dir/src/io/inflate.cpp.obj	44ed8e4ec7d47cb0
@@ -11,85 +11,104 @@
 83	2119	8123596691107097	CMakeFiles/pramana_core.dir/src/core/model.cpp.obj	f8699a7c25a36cb8
 140	2307	8123596691688778	CMakeFiles/pramana_core.dir/src/util/json.cpp.obj	7bf43c76b7547210
 115	2398	8123596691440089	CMakeFiles/pramana_core.dir/src/lp/lu.cpp.obj	61aa8dbc7b069202
-92	1813	8123611865870356	CMakeFiles/pramana_cli.dir/src/cli/main.cpp.obj	83d4017b34754d1c
+101	4018	8123634340357753	CMakeFiles/pramana_cli.dir/src/cli/main.cpp.obj	83d4017b34754d1c
 71	1790	8123599148314656	CMakeFiles/pramana_core.dir/src/io/mps.cpp.obj	b7543ac55ae3a32e
-62	2410	8123609768007766	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
-2571	2655	8123616227068967	pramana_core.lib	b35102b5e3cfb4ee
-2656	2784	8123616227903460	libpramana.dll	99911945256a5357
-2656	2784	8123616227903460	libpramana.lib	99911945256a5357
-2671	2793	8123616228073450	pramana_tests.exe	ab1457d83b2fca7c
-2664	2812	8123616228005303	pramana.exe	86371d36b1058add
-57	227	8123629861748023	build.ninja	f32ee86c1bf91166
-57	227	8123629861600670	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/cmake_install.cmake	f32ee86c1bf91166
-57	227	8123629861651316	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CTestTestfile.cmake	f32ee86c1bf91166
-62	1357	8123602045019713	CMakeFiles/pramana_core.dir/src/cert/certifier.cpp.obj	3eacb145394c81b8
+2944	5077	8123749069569064	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
+9522	9596	8123749135394265	pramana_core.lib	d720c7f8316e7c4f
+9596	9760	8123749136135356	libpramana.dll	99911945256a5357
+9596	9760	8123749136135356	libpramana.lib	99911945256a5357
+9752	9902	8123749137702848	pramana_tests.exe	6285e98d467e720b
+9603	9752	8123749136207579	pramana.exe	86371d36b1058add
+29	303	8123736752195290	build.ninja	f32ee86c1bf91166
+29	303	8123736752195290	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/cmake_install.cmake	f32ee86c1bf91166
+29	303	8123736752195290	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CTestTestfile.cmake	f32ee86c1bf91166
+36	1150	8123742281115530	CMakeFiles/pramana_core.dir/src/cert/certifier.cpp.obj	3eacb145394c81b8
 85	1312	8123611865817538	CMakeFiles/pramana_core.dir/src/ipm/ldl.cpp.obj	aeea1a54705abf63
-59	2571	8123616201931736	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
-73	320	8123629861748023	build.ninja	f32ee86c1bf91166
-73	320	8123629861748023	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/cmake_install.cmake	f32ee86c1bf91166
-73	320	8123629861748023	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CTestTestfile.cmake	f32ee86c1bf91166
-49	97	8123629862931895	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+46	2883	8123749040628489	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
 192	2243	8123629864389580	CMakeFiles/pramana_core.dir/src/pdhg/kernels.cpp.obj	e3d8aef6099428ac
 175	2446	8123629864157911	CMakeFiles/pramana_core.dir/src/mip/propagate.cpp.obj	2449a83041e88460
-220	3821	8123629864659737	CMakeFiles/pramana_core.dir/src/router/router.cpp.obj	a703fb0b43781e22
-115	4206	8123629863576872	CMakeFiles/pramana_core.dir/src/gpu/cuda_driver.cpp.obj	31cf73c6f57de5ce
-136	4306	8123629863831182	CMakeFiles/pramana_core.dir/src/lp/crossover.cpp.obj	58b4570d98cf6ddf
-165	5796	8123629864121930	CMakeFiles/pramana_core.dir/src/mip/cuts.cpp.obj	232c3b54eb865b1f
-145	6402	8123629863846471	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
-211	6554	8123629864501837	CMakeFiles/pramana_core.dir/src/presolve/presolve.cpp.obj	cf8a156f9237019b
-183	6821	8123629864291652	CMakeFiles/pramana_core.dir/src/parametric/parametric.cpp.obj	9edf553ef9eca72b
-203	7149	8123629864481688	CMakeFiles/pramana_core.dir/src/pdhg/pdhg.cpp.obj	6835dcdd26774ade
-155	7168	8123629864020736	CMakeFiles/pramana_core.dir/src/mip/bnb.cpp.obj	82bf34b3dae3478a
-126	7400	8123629863718667	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
-39	79	8123630031045390	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-99	3703	8123630031639336	CMakeFiles/pramana_cli.dir/src/cli/main.cpp.obj	83d4017b34754d1c
-90	4829	8123630031529178	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
-4830	4961	8123630078929563	pramana_core.lib	d720c7f8316e7c4f
-4984	5155	8123630080500601	pramana_tests.exe	ab1457d83b2fca7c
-4961	5156	8123630080228516	libpramana.dll	99911945256a5357
-4961	5156	8123630080228516	libpramana.lib	99911945256a5357
-4973	5236	8123630080345538	pramana.exe	86371d36b1058add
-35	80	8123630657729851	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-91	2748	8123630658290432	CMakeFiles/pramana_core.dir/src/gpu/cuda_driver.cpp.obj	31cf73c6f57de5ce
-2749	2878	8123630684858504	pramana_core.lib	d720c7f8316e7c4f
-2878	3061	8123630686126622	libpramana.dll	99911945256a5357
-2878	3061	8123630686126622	libpramana.lib	99911945256a5357
-2900	3071	8123630686346327	pramana_tests.exe	ab1457d83b2fca7c
-2889	3146	8123630686268024	pramana.exe	86371d36b1058add
-33	76	8123631111793855	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+6455	7669	8123748311811397	CMakeFiles/pramana_core.dir/src/router/router.cpp.obj	a703fb0b43781e22
 86	2881	8123631112287712	CMakeFiles/pramana_core.dir/src/gpu/cuda_driver.cpp.obj	31cf73c6f57de5ce
-2882	3007	8123631140283582	pramana_core.lib	d720c7f8316e7c4f
-3007	3196	8123631141518758	libpramana.dll	99911945256a5357
-3007	3196	8123631141518758	libpramana.lib	99911945256a5357
-3031	3212	8123631141774270	pramana_tests.exe	ab1457d83b2fca7c
-3019	3279	8123631141638025	pramana.exe	86371d36b1058add
-34	74	8123632208571391	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-83	3978	8123632209070284	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
-3979	4110	8123632248004618	pramana_core.lib	d720c7f8316e7c4f
-4110	4305	8123632249336088	libpramana.dll	99911945256a5357
-4110	4305	8123632249336088	libpramana.lib	99911945256a5357
-4135	4314	8123632249578170	pramana_tests.exe	ab1457d83b2fca7c
-4122	4389	8123632249456484	pramana.exe	86371d36b1058add
-35	76	8123632464120214	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-85	3890	8123632464601576	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
-3891	4016	8123632502666433	pramana_core.lib	d720c7f8316e7c4f
-4016	4203	8123632503921395	libpramana.dll	99911945256a5357
-4016	4203	8123632503921395	libpramana.lib	99911945256a5357
-4039	4212	8123632504143931	pramana_tests.exe	ab1457d83b2fca7c
-4027	4293	8123632504001534	pramana.exe	86371d36b1058add
-28	68	8123632764497096	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-77	3801	8123632764998945	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
-3802	3934	8123632802207378	pramana_core.lib	d720c7f8316e7c4f
-3935	4129	8123632803498996	libpramana.dll	99911945256a5357
-3935	4129	8123632803498996	libpramana.lib	99911945256a5357
-3960	4139	8123632803808914	pramana_tests.exe	ab1457d83b2fca7c
-3948	4214	8123632803698340	pramana.exe	86371d36b1058add
-31	72	8123634339657217	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
-101	4018	8123634340357753	CMakeFiles/pramana_cli.dir/src/cli/main.cpp.obj	83d4017b34754d1c
-92	4767	8123634340244044	CMakeFiles/pramana_core.dir/src/parametric/parametric.cpp.obj	9edf553ef9eca72b
-82	5267	8123634340164525	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
-5268	5401	8123634391989685	pramana_core.lib	d720c7f8316e7c4f
-5402	5588	8123634393360696	libpramana.dll	99911945256a5357
-5402	5588	8123634393360696	libpramana.lib	99911945256a5357
-5425	5596	8123634393596524	pramana_tests.exe	ab1457d83b2fca7c
-5413	5671	8123634393478029	pramana.exe	86371d36b1058add
+2884	4343	8123749069001737	CMakeFiles/pramana_core.dir/src/lp/crossover.cpp.obj	58b4570d98cf6ddf
+5078	7168	8123749090952363	CMakeFiles/pramana_core.dir/src/mip/cuts.cpp.obj	232c3b54eb865b1f
+32	1680	8123743069759741	CMakeFiles/pramana_core.dir/src/presolve/presolve.cpp.obj	cf8a156f9237019b
+6912	9522	8123749109298875	CMakeFiles/pramana_core.dir/src/parametric/parametric.cpp.obj	9edf553ef9eca72b
+203	7149	8123629864481688	CMakeFiles/pramana_core.dir/src/pdhg/pdhg.cpp.obj	6835dcdd26774ade
+4343	6911	8123749083597437	CMakeFiles/pramana_core.dir/src/mip/bnb.cpp.obj	82bf34b3dae3478a
+7169	9183	8123749111726088	CMakeFiles/pramana_tests.dir/tests/cpp/test_solvers.cpp.obj	da413fd25019be62
+65	1997	8123736753196981	CMakeFiles/pramana_tests.dir/tests/cpp/test_core.cpp.obj	e60f0472ef752ba1
+13	45	8123750635224686	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+52	3928	8123750635612733	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
+9	41	8123750969185992	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+55	2129	8123750969686176	CMakeFiles/pramana_core.dir/src/lp/crossover.cpp.obj	58b4570d98cf6ddf
+2129	3728	8123750990424151	CMakeFiles/pramana_core.dir/src/lp/lu.cpp.obj	61aa8dbc7b069202
+48	4108	8123750969611402	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
+4108	7049	8123751010206366	CMakeFiles/pramana_core.dir/src/mip/bnb.cpp.obj	82bf34b3dae3478a
+10	44	8123751415411579	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+51	2109	8123751415818275	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
+6	29	8123751511539645	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+34	1686	8123751511820430	CMakeFiles/pramana_core.dir/src/mip/cuts.cpp.obj	232c3b54eb865b1f
+5	32	8123751604223610	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+37	2146	8123751604564928	CMakeFiles/pramana_core.dir/src/parametric/parametric.cpp.obj	9edf553ef9eca72b
+2146	2217	8123751625634465	pramana_core.lib	d720c7f8316e7c4f
+2218	3830	8123751626273695	CMakeFiles/pramana_tests.dir/tests/cpp/test_core.cpp.obj	e60f0472ef752ba1
+3830	5423	8123751642425018	CMakeFiles/pramana_tests.dir/tests/cpp/test_solvers.cpp.obj	da413fd25019be62
+5423	5573	8123751658421745	libpramana.dll	99911945256a5357
+5423	5573	8123751658421745	libpramana.lib	99911945256a5357
+5574	5710	8123751659927191	pramana.exe	86371d36b1058add
+5711	5854	8123751661299527	pramana_tests.exe	6285e98d467e720b
+6	31	8123752528781029	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+37	2564	8123752529080472	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
+2564	4771	8123752554483435	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
+6	30	8123752651770199	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+36	1347	8123752652065992	CMakeFiles/pramana_core.dir/src/lp/crossover.cpp.obj	58b4570d98cf6ddf
+1348	2334	8123752665161344	CMakeFiles/pramana_core.dir/src/lp/lu.cpp.obj	61aa8dbc7b069202
+6	32	8123752750980809	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+38	1989	8123752751291550	CMakeFiles/pramana_core.dir/src/lp/simplex.cpp.obj	5198a04a7dbb9765
+1989	3934	8123752770814829	CMakeFiles/pramana_core.dir/src/mip/bnb.cpp.obj	82bf34b3dae3478a
+3934	5635	8123752790215350	CMakeFiles/pramana_core.dir/src/mip/cuts.cpp.obj	232c3b54eb865b1f
+5635	7790	8123752807251602	CMakeFiles/pramana_core.dir/src/parametric/parametric.cpp.obj	9edf553ef9eca72b
+7790	7858	8123752828808697	pramana_core.lib	d720c7f8316e7c4f
+7859	9543	8123752829507454	CMakeFiles/pramana_tests.dir/tests/cpp/test_core.cpp.obj	e60f0472ef752ba1
+9544	11163	8123752846321869	CMakeFiles/pramana_tests.dir/tests/cpp/test_solvers.cpp.obj	da413fd25019be62
+11163	11330	8123752862532464	libpramana.dll	99911945256a5357
+11163	11330	8123752862532464	libpramana.lib	99911945256a5357
+11331	11478	8123752864220397	pramana.exe	86371d36b1058add
+11478	11637	8123752865696077	pramana_tests.exe	6285e98d467e720b
+7	31	8123753528503492	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+6	31	8123753605026786	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+37	2264	8123753605328898	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
+2265	2338	8123753627573068	pramana_core.lib	d720c7f8316e7c4f
+2339	2484	8123753628349159	libpramana.dll	99911945256a5357
+2339	2484	8123753628349159	libpramana.lib	99911945256a5357
+2484	2627	8123753629792474	pramana.exe	86371d36b1058add
+2628	2776	8123753631238313	pramana_tests.exe	6285e98d467e720b
+6	32	8123754713023475	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+39	2963	8123754713394307	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
+2963	5672	8123754742630395	CMakeFiles/pramana_core.dir/src/ipm/ipm.cpp.obj	16e74dcf11400f34
+6	32	8123754835251515	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+38	110	8123754835572138	pramana_core.lib	d720c7f8316e7c4f
+110	2146	8123754836264175	CMakeFiles/pramana_tests.dir/tests/cpp/test_core.cpp.obj	e60f0472ef752ba1
+2147	3996	8123754856664063	CMakeFiles/pramana_tests.dir/tests/cpp/test_solvers.cpp.obj	da413fd25019be62
+3997	4171	8123754875122488	libpramana.dll	99911945256a5357
+3997	4171	8123754875122488	libpramana.lib	99911945256a5357
+4171	4332	8123754876878362	pramana.exe	86371d36b1058add
+4332	4509	8123754878516529	pramana_tests.exe	6285e98d467e720b
+14	72	8123755652190541	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+92	9241	8123755652946060	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
+9243	9417	8123755744453800	pramana_core.lib	d720c7f8316e7c4f
+9418	14663	8123755746205107	CMakeFiles/pramana.dir/src/api/c_api.cpp.obj	bef04c5561358304
+14664	20648	8123755798672225	CMakeFiles/pramana_cli.dir/src/cli/main.cpp.obj	83d4017b34754d1c
+20649	21022	8123755858511014	libpramana.dll	99911945256a5357
+20649	21022	8123755858511014	libpramana.lib	99911945256a5357
+21022	21436	8123755862244627	pramana.exe	86371d36b1058add
+21436	21823	8123755866400218	pramana_tests.exe	6285e98d467e720b
+6	31	8123758301722436	C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/cmake.verify_globs	f64f8e471bf7b474
+38	2791	8123758302030187	CMakeFiles/pramana_core.dir/src/api/solver.cpp.obj	86ea621cb80d8f19
+2791	4698	8123758329630434	CMakeFiles/pramana_core.dir/src/presolve/presolve.cpp.obj	cf8a156f9237019b
+4698	4771	8123758348635100	pramana_core.lib	d720c7f8316e7c4f
+4771	6499	8123758349364798	CMakeFiles/pramana_tests.dir/tests/cpp/test_solvers.cpp.obj	da413fd25019be62
+6500	6659	8123758366607538	libpramana.dll	99911945256a5357
+6500	6659	8123758366607538	libpramana.lib	99911945256a5357
+6659	6807	8123758368310573	pramana.exe	86371d36b1058add
+6807	6960	8123758369657008	pramana_tests.exe	6285e98d467e720b

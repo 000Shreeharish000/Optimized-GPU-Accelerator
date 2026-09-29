@@ -173,6 +173,7 @@ static SolverOptions optionsFromJson(const char* text) {
   if (j.has("cuts")) o.cuts = j.at("cuts").boolean(true);
   if (j.has("heuristics")) o.heuristics = j.at("heuristics").boolean(true);
   if (j.has("branching")) o.branching = j.at("branching").str();
+  if (j.has("mip_threads")) o.mipThreads = static_cast<int>(j.at("mip_threads").num());
   if (j.has("allow_gpu")) o.allowGpu = j.at("allow_gpu").boolean(true);
   if (j.has("router_model")) o.routerModelPath = j.at("router_model").str();
   return o;

@@ -5,6 +5,7 @@
 
 #include "cert/certifier.h"
 #include "lp/simplex.h"
+#include "mip/propagate.h"
 #include "pdhg/pdhg.h"
 #include "util/log.h"
 #include "util/parallel.h"
@@ -54,6 +55,21 @@ BoundParam boundParam(const Model& m, const ParametricSpec& s) {
     b.upperSide = true;
   }
   return b;
+}
+
+// Bounds implied by the constraints (activity propagation), relaxed by a safety
+// margin; every feasible point satisfies them, so they are valid for a safe bound.
+void impliedBounds(const Model& m, std::vector<double>& lo, std::vector<double>& up) {
+  Model relaxed = m;
+  for (auto& t : relaxed.colType) t = VarType::Continuous;
+  Propagator p;
+  p.setup(relaxed);
+  std::vector<double> l2 = lo, u2 = up;
+  p.propagate(l2, u2, 30);
+  for (size_t j = 0; j < lo.size(); ++j) {
+    if (fin(l2[j]) && (!fin(lo[j]) || l2[j] > lo[j])) lo[j] = l2[j] - 1e-6 * (1 + std::fabs(l2[j]));
+    if (fin(u2[j]) && (!fin(up[j]) || u2[j] < up[j])) up[j] = u2[j] + 1e-6 * (1 + std::fabs(u2[j]));
+  }
 }
 
 }  // namespace
@@ -325,7 +341,7 @@ ParametricResult parametricAnalysis(const Model& model, const ParametricSpec& sp
         g.certifiedGap = std::max(g.certifiedGap, e.gap);
         if (std::fabs(e.theta - mid) < bestDist) {
           bestDist = std::fabs(e.theta - mid);
-          g.paramVarValue = e.paramVar;
+          g.paramVarValue = costKind ? g.slope : e.paramVar;  // for a price the slope IS the quantity
         }
         g.pivots += e.pivots;
       }
@@ -497,8 +513,12 @@ FamilyComparison compareFamilyStrategies(const Model& model, const ParametricSpe
       s.maxRelError = std::max(s.maxRelError, relErr(sense * rr[k].objective, th));
       // A first-order answer is only "certified" to the accuracy its safe dual bound proves.
       Model pmin = pm.toMinimization();
-      SafeBoundResult sb = safeDualBound(pmin.A, pmin.colCost, pmin.colLower, pmin.colUpper, pmin.rowLower,
-                                         pmin.rowUpper, rr[k].rowDual);
+      // First-order duals are only ~1e-6 accurate: wrong-sign reduced costs on
+      // unbounded columns would make the bound -inf. Use implied bounds from
+      // constraint propagation (valid for every feasible x, relaxed by a margin).
+      std::vector<double> lo = pmin.colLower, up = pmin.colUpper;
+      impliedBounds(pmin, lo, up);
+      SafeBoundResult sb = safeDualBound(pmin.A, pmin.colCost, lo, up, pmin.rowLower, pmin.rowUpper, rr[k].rowDual);
       double lb = sb.bound + pmin.objOffset;
       if (std::isfinite(sb.bound) && std::fabs(rr[k].objective - lb) <= 1e-4 * (1 + std::fabs(rr[k].objective)))
         s.certified++;

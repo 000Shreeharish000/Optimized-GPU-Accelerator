@@ -63,12 +63,18 @@ class ExactModel:
         return len(self.row_names)
 
 
-def _num(s: str) -> F:
+_EXACT = True
+
+
+def _num(s: str):
     s = s.replace("D", "E").replace("d", "e")
-    return F(s)
+    return F(s) if _EXACT else float(s)
 
 
-def parse_mps(path: str) -> ExactModel:
+def parse_mps(path: str, exact: bool = True) -> ExactModel:
+    """Parse MPS/QPS. exact=True: Fractions (verification); False: floats (fast, for benchmarking)."""
+    global _EXACT
+    _EXACT = exact
     opener = gzip.open if str(path).endswith(".gz") else open
     with opener(path, "rt", errors="replace") as fh:
         lines = fh.read().splitlines()
@@ -343,8 +349,13 @@ def safe_bound(M: ExactModel, cmin: List[F], y: List[F]):
     return lb, pert
 
 
-def farkas_check(M: ExactModel, y: List[F]) -> Tuple[bool, float]:
+def farkas_check(M: ExactModel, y: List[F]) -> Tuple[bool, float, float]:
+    """Exact Farkas test. Returns (ok, margin, backward_error). A column residue
+    (A^T y)_j of the wrong sign on an infinite bound is clipped only if it is at
+    most 1e-9 of sum_i |a_ij y_i| (floating-point residue); the proof then holds
+    exactly for A perturbed by that relative amount, which is reported."""
     best = None
+    best_pert = 0.0
     for sgn in (1, -1):
         yy = []
         for i in range(M.m):
@@ -358,19 +369,30 @@ def farkas_check(M: ExactModel, y: List[F]) -> Tuple[bool, float]:
             yy.append(v)
         sup_x = F(0)
         ok = True
+        pert = 0.0
         for j in range(M.n):
-            w = sum((a * yy[i] for i, a in M.cols[j].items()), F(0))
+            terms = [a * yy[i] for i, a in M.cols[j].items()]
+            w = sum(terms, F(0))
             if w == 0:
                 continue
+            mag = sum((abs(t) for t in terms), F(0))
             if w > 0:
                 if M.cup[j] is None:
-                    ok = False
-                    break
+                    rel = float(w / mag)
+                    if rel > 1e-9:
+                        ok = False
+                        break
+                    pert = max(pert, rel)
+                    continue
                 sup_x += w * M.cup[j]
             else:
                 if M.clo[j] is None:
-                    ok = False
-                    break
+                    rel = float(-w / mag)
+                    if rel > 1e-9:
+                        ok = False
+                        break
+                    pert = max(pert, rel)
+                    continue
                 sup_x += w * M.clo[j]
         if not ok:
             continue
@@ -385,8 +407,9 @@ def farkas_check(M: ExactModel, y: List[F]) -> Tuple[bool, float]:
             continue
         margin = inf_r - sup_x
         if best is None or margin > best:
-            best = margin
-    return (best is not None and best > 0), (float(best) if best is not None else -math.inf)
+            best, best_pert = margin, pert
+    ok = best is not None and best > 0
+    return ok, (float(best) if best is not None else -math.inf), best_pert
 
 
 # ---------------------------------------------------------------------------
@@ -587,8 +610,9 @@ def verify(model_path: str, result_path: str, exact_basis: bool = False, tol: fl
                            "detail": "MIP infeasibility is proved by the B&B tree, not a single ray" if is_mip else ""})
             ok = is_mip
         else:
-            good, margin = farkas_check(M, y)
-            checks.append({"check": "exact_farkas", "value": margin, "verdict": "PASS" if good else "FAIL"})
+            good, margin, pert = farkas_check(M, y)
+            checks.append({"check": "exact_farkas", "value": margin, "verdict": "PASS" if good else "FAIL",
+                           "detail": "exact" if pert == 0 else f"exact up to relative data perturbation {pert:.1e}"})
             ok = good
     elif status == "UNBOUNDED":
         d = vec("primal_ray", M.col_names)

@@ -111,6 +111,7 @@ int cmdSolve(const Args& a) {
   o.cuts = !a.has("--no-cuts");
   o.heuristics = !a.has("--no-heuristics");
   o.branching = a.get("--branching", o.branching);
+  o.mipThreads = static_cast<int>(a.num("--mip-threads", 1));
   o.routerModelPath = a.get("--router-model", "");
   o.logLevel = static_cast<int>(a.num("--log", 1));
   o.seed = static_cast<uint64_t>(a.num("--seed", 12345));

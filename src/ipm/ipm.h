@@ -31,6 +31,7 @@ struct IpmOptions {
   bool scale = true;
   bool crossover = true;        // LP only
   int logLevel = 0;
+  int startMode = -1;           // -1 multi-start (LS, then centered), 0 LS start, 1 centered start
 };
 
 struct IpmStats {

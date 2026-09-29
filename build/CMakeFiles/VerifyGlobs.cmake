@@ -4,7 +4,9 @@
 # PRAMANA_TEST_SOURCES at CMakeLists.txt:66 (file)
 file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/Shree Harish V/Desktop/GPU Acceltor/tests/cpp/*.cpp")
 set(OLD_GLOB
+  "C:/Users/Shree Harish V/Desktop/GPU Acceltor/tests/cpp/test_core.cpp"
   "C:/Users/Shree Harish V/Desktop/GPU Acceltor/tests/cpp/test_main.cpp"
+  "C:/Users/Shree Harish V/Desktop/GPU Acceltor/tests/cpp/test_solvers.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")

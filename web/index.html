@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRAMANA Result Viewer</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5b6475; --line: #dde1e8;
+    --pass: #1f7a4d; --warn: #9a6700; --fail: #b42318; --accent: #2458c6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2c3340;
+      --pass: #4cc38a; --warn: #e3b341; --fail: #f47067; --accent: #6ea8fe;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2c3340;
+    --pass: #4cc38a; --warn: #e3b341; --fail: #f47067; --accent: #6ea8fe;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 20px 16px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; }
+  #drop { border: 2px dashed var(--line); border-radius: 10px; padding: 22px; text-align: center; color: var(--muted); background: var(--panel); cursor: pointer; }
+  #drop.over { border-color: var(--accent); color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 14px; }
+  .kv div:nth-child(odd) { color: var(--muted); }
+  .kv div:nth-child(even) { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .status { font-size: 26px; font-weight: 700; }
+  .PASS, .OPTIMAL, .INFEASIBLE, .UNBOUNDED, .ACCEPTED { color: var(--pass); }
+  .WARN, .TIME_LIMIT, .ITERATION_LIMIT, .NODE_LIMIT { color: var(--warn); }
+  .FAIL, .NUMERICAL_FAILURE, .REJECTED, .ERROR, .NONCONVEX { color: var(--fail); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .wide { grid-column: 1 / -1; overflow-x: auto; }
+  svg { width: 100%; height: auto; }
+  .axis { stroke: var(--muted); stroke-width: 1; }
+  .curve { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .bp { fill: var(--fail); }
+  .lbl { fill: var(--muted); font-size: 11px; }
+  button { font: inherit; background: none; border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PRAMANA result viewer</h1>
+  <p>Drop a result JSON (<code>pramana model.mps --json r.json</code>) or a parametric JSON (<code>pramana parametric ... --json p.json</code>). Everything stays in your browser.
+  <button id="theme" type="button">theme</button></p>
+</header>
+<main>
+  <label id="drop">Drop a JSON file here or click to choose<input id="file" type="file" accept=".json" hidden></label>
+  <div id="out"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const fmt = v => (v === undefined || v === null) ? "–" : (typeof v === "number" ? (Math.abs(v) >= 1e6 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(4) : +v.toPrecision(10)) : String(v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function kv(obj) { return '<div class="kv">' + Object.entries(obj).map(([k, v]) => `<div>${esc(k)}</div><div>${esc(fmt(v))}</div>`).join("") + "</div>"; }
+function card(title, body, wide) { return `<section class="card${wide ? " wide" : ""}"><h2>${esc(title)}</h2>${body}</section>`; }
+
+function renderResult(j) {
+  const t = j.telemetry || {}, m = t.model || {}, c = j.certificate || {}, tm = t.timing || {};
+  let html = '<div class="grid">';
+  html += card("Result", `<div class="status ${esc(j.status)}">${esc(j.status)}</div>` + kv({
+    "engine": j.engine, "engine claimed": j.engine_status, "objective": j.objective,
+    "certified bound": j.best_bound, "relative gap": j.relative_gap, "seconds": j.seconds }));
+  html += card("Problem", kv({ "name": m.name, "rows": m.rows, "columns": m.cols, "nonzeros": m.nnz,
+    "integer columns": m.integers, "Q nonzeros": m.q_nnz, "coefficient range": m.coefficient_range,
+    "equality rows": m.equality_row_fraction, "sense": m.sense }));
+  const eng = t.simplex || t.ipm || t.pdhg || t.mip || {};
+  html += card("Solver", kv(Object.fromEntries(Object.entries(eng).filter(([k, v]) => typeof v !== "object").slice(0, 14))));
+  const pre = t.presolve || {};
+  html += card("Presolve & timing", kv({ "presolve": pre.status, "rows removed": pre.rows_removed, "cols removed": pre.cols_removed,
+    "t presolve": tm.presolve, "t engine": tm.engine, "t postsolve": tm.postsolve, "t certify": tm.certify, "t total": tm.total }));
+  if (t.pdhg) html += card("Hardware (PDHG)", kv({ "backend": t.pdhg.backend, "device": t.pdhg.device, "iterations": t.pdhg.iterations,
+    "kernel s": t.pdhg.kernel_seconds, "transfer s": t.pdhg.transfer_seconds, "setup s": t.pdhg.setup_seconds,
+    "bytes up": t.pdhg.bytes_uploaded, "launches": t.pdhg.kernel_launches }));
+  if (t.router) html += card("Router", kv({ "selected": t.router.selected, "requested": t.router.requested, "reason": t.router.reason }));
+  const checks = (c.checks || []).map(k => `<tr><td>${esc(k.check)}</td><td class="${esc(k.verdict)}"><b>${esc(k.verdict)}</b></td><td class="num">${esc(fmt(k.value))}</td><td class="num">${esc(fmt(k.tolerance))}</td><td>${esc(k.detail || "")}</td></tr>`).join("");
+  html += card(`Certificate — ${c.accepted ? "ACCEPTED" : "REJECTED"} (claimed ${c.claimed_status} → ${c.certified_status})`,
+    `<table><tr><th>check</th><th>verdict</th><th>value</th><th>tolerance</th><th>detail</th></tr>${checks}</table>`, true);
+  if (t.mip && t.mip.progress_t_incumbent_bound_minform) html += card("MIP progress (min form: incumbent / bound vs time)", chartProgress(t.mip.progress_t_incumbent_bound_minform), true);
+  return html + "</div>";
+}
+
+function chartProgress(pts) {
+  const P = pts.filter(p => p[1] < 1e300 || p[2] > -1e300);
+  if (P.length < 2) return "<p>not enough samples</p>";
+  const ys = P.flatMap(p => [p[1], p[2]]).filter(v => Math.abs(v) < 1e300);
+  const W = 800, H = 260, x0 = 60, y0 = 20, w = W - 80, h = H - 50;
+  const tmax = Math.max(...P.map(p => p[0]), 1e-6), ymin = Math.min(...ys), ymax = Math.max(...ys) || ymin + 1;
+  const X = t => x0 + w * t / tmax, Y = v => y0 + h * (1 - (v - ymin) / ((ymax - ymin) || 1));
+  const line = k => P.filter(p => Math.abs(p[k]) < 1e300).map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[k]).toFixed(1)}`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="MIP progress">
+    <line class="axis" x1="${x0}" y1="${y0 + h}" x2="${x0 + w}" y2="${y0 + h}"/><line class="axis" x1="${x0}" y1="${y0}" x2="${x0}" y2="${y0 + h}"/>
+    <path class="curve" d="${line(1)}"/><path class="curve" style="stroke:var(--pass)" d="${line(2)}"/>
+    <text class="lbl" x="${x0}" y="${H - 6}">0 s</text><text class="lbl" x="${x0 + w - 40}" y="${H - 6}">${fmt(tmax)} s</text>
+    <text class="lbl" x="4" y="${y0 + 10}">${fmt(ymax)}</text><text class="lbl" x="4" y="${y0 + h}">${fmt(ymin)}</text>
+    <text class="lbl" x="${x0 + 10}" y="${y0 + 12}">blue: incumbent, green: certified bound</text></svg>`;
+}
+
+function renderParametric(p) {
+  const segs = p.segments.filter(s => s.status === "OPTIMAL");
+  let html = '<div class="grid">';
+  html += card("Parametric analysis", kv({ "model": p.model, "segments": p.segments.length, "breakpoints": (p.breakpoints || []).length,
+    "pivots": p.pivots, "seconds": p.seconds, "complete": p.complete }));
+  if (segs.length) {
+    const W = 800, H = 300, x0 = 70, y0 = 20, w = W - 100, h = H - 60;
+    const ts = segs.flatMap(s => [s.theta_lo, s.theta_hi]), vs = segs.flatMap(s => [s.objective_lo, s.objective_hi]);
+    const tmin = Math.min(...ts), tmax = Math.max(...ts), vmin = Math.min(...vs), vmax = Math.max(...vs);
+    const X = t => x0 + w * (t - tmin) / ((tmax - tmin) || 1), Y = v => y0 + h * (1 - (v - vmin) / ((vmax - vmin) || 1));
+    const d = segs.map((s, i) => `${i ? "L" : "M"}${X(s.theta_lo).toFixed(1)},${Y(s.objective_lo).toFixed(1)} L${X(s.theta_hi).toFixed(1)},${Y(s.objective_hi).toFixed(1)}`).join(" ");
+    const bps = (p.breakpoints || []).map(b => { const s = segs.find(g => Math.abs(g.theta_lo - b) < 1e-9 * (1 + Math.abs(b))); return s ? `<circle class="bp" cx="${X(b)}" cy="${Y(s.objective_lo)}" r="3.5"><title>breakpoint ${fmt(b)}</title></circle>` : ""; }).join("");
+    html += card("Exact optimal value function v(θ) — every segment certified", `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="value function">
+      <line class="axis" x1="${x0}" y1="${y0 + h}" x2="${x0 + w}" y2="${y0 + h}"/><line class="axis" x1="${x0}" y1="${y0}" x2="${x0}" y2="${y0 + h}"/>
+      <path class="curve" d="${d}"/>${bps}
+      <text class="lbl" x="${x0}" y="${H - 20}">${fmt(tmin)}</text><text class="lbl" x="${x0 + w - 50}" y="${H - 20}">${fmt(tmax)}</text>
+      <text class="lbl" x="${x0 + w / 2 - 10}" y="${H - 4}">θ</text>
+      <text class="lbl" x="4" y="${y0 + 10}">${fmt(vmax)}</text><text class="lbl" x="4" y="${y0 + h}">${fmt(vmin)}</text></svg>`, true);
+  }
+  const rows = p.segments.map(s => `<tr><td class="num">${fmt(s.theta_lo)}</td><td class="num">${fmt(s.theta_hi)}</td><td class="${esc(s.status)}">${esc(s.status)}</td><td class="num">${fmt(s.objective_lo)}</td><td class="num">${fmt(s.objective_hi)}</td><td class="num">${fmt(s.slope)}</td><td class="${s.certified ? "PASS" : "FAIL"}">${s.certified ? "CERTIFIED" : "no"}</td></tr>`).join("");
+  html += card("Segments (slope = marginal value)", `<table><tr><th>θ from</th><th>θ to</th><th>status</th><th>v(from)</th><th>v(to)</th><th>slope</th><th>certificate</th></tr>${rows}</table>`, true);
+  return html + "</div>";
+}
+
+function load(text) {
+  let j;
+  try { j = JSON.parse(text); } catch (e) { $("#out").innerHTML = `<p class="FAIL">Not valid JSON: ${esc(e.message)}</p>`; return; }
+  $("#out").innerHTML = j.segments ? renderParametric(j) : renderResult(j);
+}
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", ev => { const f = ev.dataTransfer.files[0]; if (f) f.text().then(load); });
+$("#file").addEventListener("change", ev => { const f = ev.target.files[0]; if (f) f.text().then(load); });
+$("#theme").addEventListener("click", () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark"; });
+</script>
+</body>
+</html>

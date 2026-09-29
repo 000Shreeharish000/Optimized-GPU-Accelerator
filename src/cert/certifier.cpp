@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "cert/interval.h"
+#include "mip/propagate.h"
 #include "util/log.h"
 
 namespace pramana {
@@ -223,7 +224,10 @@ Certificate certify(const Model& model, const SolutionClaim& claim, const CertTo
     int worstRow = -1;
     for (int j = 0; j < n; ++j) {
       double v = 0;
-      if (std::isnan(x[j])) v = kInf;
+      if (!std::isfinite(x[j])) {  // NaN / inf can never be a feasible point
+        colViol = kInf;
+        continue;
+      }
       if (fin(model.colLower[j]) && x[j] < model.colLower[j])
         v = (model.colLower[j] - x[j]) / (1 + std::fabs(model.colLower[j]));
       if (fin(model.colUpper[j]) && x[j] > model.colUpper[j])
@@ -237,7 +241,7 @@ Certificate certify(const Model& model, const SolutionClaim& claim, const CertTo
       for (int k = model.A.start[j]; k < model.A.start[j + 1]; ++k) act[model.A.index[k]].add(model.A.value[k] * x[j]);
     for (int i = 0; i < m; ++i) {
       double r = act[i].value();
-      double v = 0;
+      double v = std::isfinite(r) ? 0.0 : kInf;
       if (fin(model.rowLower[i]) && r < model.rowLower[i])
         v = (model.rowLower[i] - r) / (1 + std::fabs(model.rowLower[i]));
       if (fin(model.rowUpper[i]) && r > model.rowUpper[i])
@@ -334,6 +338,29 @@ Certificate certify(const Model& model, const SolutionClaim& claim, const CertTo
       }
       SafeBoundResult sb = safeBoundInterval(model.A, clo, chi, model.colLower, model.colUpper, model.rowLower,
                                              model.rowUpper, claim.rowDual);
+      bool usedImplied = false;
+      if (std::isinf(sb.bound)) {
+        // Inexact duals (e.g. first-order methods) leave wrong-sign reduced costs on
+        // unbounded columns. Bound those columns by constraint-implied bounds
+        // (activity propagation, relaxed by a margin): valid for every feasible x.
+        Model relaxed = model;
+        for (auto& t : relaxed.colType) t = VarType::Continuous;
+        Propagator prop;
+        prop.setup(relaxed);
+        std::vector<double> lo = model.colLower, up = model.colUpper;
+        prop.propagate(lo, up, 30);
+        for (int j = 0; j < n; ++j) {
+          if (fin(lo[j]) && (!fin(model.colLower[j]) || lo[j] > model.colLower[j])) lo[j] -= 1e-6 * (1 + std::fabs(lo[j]));
+          else lo[j] = model.colLower[j];
+          if (fin(up[j]) && (!fin(model.colUpper[j]) || up[j] < model.colUpper[j])) up[j] += 1e-6 * (1 + std::fabs(up[j]));
+          else up[j] = model.colUpper[j];
+        }
+        SafeBoundResult sb2 = safeBoundInterval(model.A, clo, chi, lo, up, model.rowLower, model.rowUpper, claim.rowDual);
+        if (!std::isinf(sb2.bound)) {
+          sb = sb2;
+          usedImplied = true;
+        }
+      }
       double pobjMin = sense * cert.primalObjective;
       // min-form objective = c_min^T x + 1/2 x^T Q_min x + sense*offset
       double lbMin = std::isinf(sb.bound) ? -kInf : addDown(addDown(sb.bound, constLo), sense * model.objOffset);
@@ -345,8 +372,9 @@ Certificate certify(const Model& model, const SolutionClaim& claim, const CertTo
       cert.costPerturbation = sb.costPerturbation;
       Verdict sv = rigorous ? (gap <= tol.relGap ? Verdict::Pass : Verdict::Fail) : Verdict::Warn;
       addCheck(cert, model.isQp() ? "safe_dual_bound_qp_linearized" : "safe_dual_bound_gap", sv, gap, tol.relGap,
-               rigorous ? formatString("rigorous bound %.12g (outward-rounded; exact for costs perturbed by <= %.1e rel.)",
-                                       cert.safeDualBound, sb.costPerturbation)
+               rigorous ? formatString("rigorous bound %.12g (outward-rounded; exact for costs perturbed by <= %.1e rel.)%s",
+                                       cert.safeDualBound, sb.costPerturbation,
+                                       usedImplied ? " using constraint-implied column bounds" : "")
                         : formatString("%d unbounded directions with nonzero reduced cost", sb.infiniteTerms));
       bool dualOk = rigorous ? gap <= tol.relGap : sb.maxDualInfeasibility <= tol.dualFeas;
       if (!rigorous)
@@ -393,6 +421,17 @@ Certificate certify(const Model& model, const SolutionClaim& claim, const CertTo
           if (fin(model.rowLower[i])) viol = std::max(viol, -ad[i]);
           if (fin(model.rowUpper[i])) viol = std::max(viol, ad[i]);
         }
+      }
+      if (ok && model.isQp()) {
+        // A QP is unbounded along d only if d^T Q d = 0 (convex Q); otherwise the quadratic term dominates.
+        std::vector<double> dn(n), qd(n, 0.0);
+        for (int j = 0; j < n; ++j) dn[j] = claim.primalRay[j] / dnorm;
+        model.Q.multiply(dn.data(), qd.data());
+        double dqd = 0;
+        for (int j = 0; j < n; ++j) dqd += dn[j] * qd[j];
+        addCheck(cert, "primal_ray_zero_curvature", std::fabs(dqd) <= tol.primalFeas ? Verdict::Pass : Verdict::Fail,
+                 dqd, tol.primalFeas, "d^T Q d must vanish along an unbounded direction of a convex QP");
+        if (std::fabs(dqd) > tol.primalFeas) ok = false;
       }
       bool rayOk = ok && viol <= tol.primalFeas && cd < -tol.dualFeas;
       addCheck(cert, "primal_ray_recession", ok && viol <= tol.primalFeas ? Verdict::Pass : Verdict::Fail, viol,

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 #include "util/log.h"
 #include "util/timer.h"
@@ -147,6 +148,12 @@ bool Presolver::pass(bool mip) {
     }
     double amin = activityMin(i), amax = activityMax(i);
     double tol = 1e-9 * (1 + std::max(std::fabs(rl_[i]) * fin(rl_[i]), std::fabs(ru_[i]) * fin(ru_[i])));
+    // Strict violation of a row's range by its activity bounds is a one-row Farkas
+    // certificate candidate (checked rigorously later on the original model).
+    if (certRow_ < 0 && ((fin(ru_[i]) && fin(amin) && amin > ru_[i]) || (fin(rl_[i]) && fin(amax) && amax < rl_[i]))) {
+      certRow_ = i;
+      certSign_ = (fin(rl_[i]) && fin(amax) && amax < rl_[i]) ? 1 : -1;
+    }
     if ((fin(ru_[i]) && amin > ru_[i] + 1e3 * tol) || (fin(rl_[i]) && amax < rl_[i] - 1e3 * tol)) {
       infeasible_ = true;
       break;
@@ -164,7 +171,7 @@ bool Presolver::pass(bool mip) {
     int side = 0;
     if (fin(ru_[i]) && fin(amin) && amin >= ru_[i] - tol) side = 1;       // forced to min activity
     else if (fin(rl_[i]) && fin(amax) && amax <= rl_[i] + tol) side = -1;  // forced to max activity
-    if (side != 0) {
+    if (side != 0 && !qp_) {  // forcing rows fix columns: not valid with a quadratic objective
       Record r;
       r.kind = Kind::ForcingRow;
       r.row = i;
@@ -214,7 +221,9 @@ bool Presolver::pass(bool mip) {
       infeasible_ = true;
       break;
     }
-    if (up_[j] - lo_[j] <= 1e-12 * (1 + std::fabs(lo_[j]))) {
+    // QP: column reductions interact with Q (the IPM eliminates fixed columns itself).
+    if (qp_) continue;
+    if (fin(lo_[j]) && fin(up_[j]) && up_[j] - lo_[j] <= 1e-12 * (1 + std::fabs(lo_[j]))) {
       fixColumn(j, lo_[j]);
       stats_.fixedCols++;
       changed = true;
@@ -329,6 +338,7 @@ bool Presolver::pass(bool mip) {
 PresolveStatus Presolver::run(const Model& model, bool mip) {
   Timer t;
   orig_ = model;
+  qp_ = model.isQp();
   const int m = model.numRows(), n = model.numCols();
   AT_ = model.A.transpose();
   lo_ = model.colLower;
@@ -345,6 +355,8 @@ PresolveStatus Presolver::run(const Model& model, bool mip) {
   for (int i = 0; i < m; ++i) rowCount_[i] = AT_.start[i + 1] - AT_.start[i];
   stack_.clear();
   forcingCosts_.clear();
+  certRow_ = -1;
+  certSign_ = 0;
   stats_ = PresolveStats();
   infeasible_ = unbounded_ = false;
 
@@ -397,6 +409,20 @@ PresolveStatus Presolver::run(const Model& model, bool mip) {
     }
   reduced_.A = SparseMatrix::fromTriplets(static_cast<int>(rowOrig_.size()), static_cast<int>(colOrig_.size()), ri, ci, v);
   reduced_.Q = SparseMatrix(0, 0);
+  if (qp_) {
+    std::vector<int> qi, qj;
+    std::vector<double> qv;
+    for (int j : colOrig_)
+      for (int k = model.Q.start[j]; k < model.Q.start[j + 1]; ++k) {
+        int i = model.Q.index[k];
+        if (colNew[i] < 0) continue;
+        qi.push_back(colNew[i]);
+        qj.push_back(colNew[j]);
+        qv.push_back(model.Q.value[k]);
+      }
+    int nn = static_cast<int>(colOrig_.size());
+    reduced_.Q = SparseMatrix::fromTriplets(nn, nn, qi, qj, qv);
+  }
   if (colOrig_.empty() && rowOrig_.empty()) return PresolveStatus::Empty;
   return stack_.empty() ? PresolveStatus::Unchanged : PresolveStatus::Reduced;
 }
@@ -421,8 +447,11 @@ Presolver::Solution Presolver::postsolve(const Solution& rs) const {
     if (rs.hasBasis) s.rowStatus[rowOrig_[r]] = rs.rowStatus[r];
   }
   // Stage reduced cost: stage cost minus contributions of rows restored so far.
+  // QP: reduced cost d = c + Qx - A^T y (columns are never removed in QP mode, so x is known).
+  std::vector<double> qx(n, 0.0);
+  if (qp_) orig_.Q.multiply(s.x.data(), qx.data());
   auto stageD = [&](int j, double stageCost) {
-    double d = stageCost;
+    double d = stageCost + qx[j];
     for (int k = A.start[j]; k < A.start[j + 1]; ++k) d -= A.value[k] * s.rowDual[A.index[k]];
     return d;
   };
@@ -475,6 +504,16 @@ Presolver::Solution Presolver::postsolve(const Solution& rs) const {
         bool atRowUp = fin(rowImpUp) && std::fabs(x - rowImpUp) <= tx &&
                        (!fin(r.oldUpper) || rowImpUp < r.oldUpper - tx);
         const bool colNonbasic = !s.hasBasis || s.colStatus[j] != BasisStatus::Basic;
+        if (!s.hasBasis) {
+          // Interior / first-order solution (no basis): the sign of the reduced cost says
+          // which bound's multiplier it carries; if that bound came from this row,
+          // transfer it to the row dual (x need not sit exactly on the bound).
+          double d = stageD(j, r.cost);
+          bool lowerFromRow = fin(rowImpLo) && (!fin(r.oldLower) || rowImpLo > r.oldLower);
+          bool upperFromRow = fin(rowImpUp) && (!fin(r.oldUpper) || rowImpUp < r.oldUpper);
+          if ((d > 0 && lowerFromRow) || (d < 0 && upperFromRow)) s.rowDual[i] = d / r.a;
+          break;
+        }
         if (colNonbasic && (atRowLo || atRowUp)) {
           // x_j sits on a bound owned by the row: the row becomes nonbasic and takes
           // over the reduced cost (y_i = d_j / a), the column becomes basic.
@@ -530,9 +569,12 @@ Presolver::Solution Presolver::postsolve(const Solution& rs) const {
       }
     }
   }
+  if (std::getenv("PRESOLVE_DEBUG"))
+    for (int j = 0; j < n; ++j)
+      if (!std::isfinite(s.x[j]) || std::fabs(s.x[j]) > 1e20) PLOG_INFO("postsolve: x[%d] = %g", j, s.x[j]);
   // Final reduced costs on the original model.
   for (int j = 0; j < n; ++j) {
-    double d = orig_.colCost[j];
+    double d = orig_.colCost[j] + qx[j];
     for (int k = A.start[j]; k < A.start[j + 1]; ++k) d -= A.value[k] * s.rowDual[A.index[k]];
     s.reducedCost[j] = d;
   }

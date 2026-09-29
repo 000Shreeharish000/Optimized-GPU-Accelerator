@@ -39,9 +39,12 @@ class LuFactor {
   int factorize(const std::vector<int>& basicIndex);
 
   // Solves B x = b. In: `rhs` indexed by row. Out: indexed by basic position.
-  void ftran(HVector& rhs) const;
+  // sparseInput = true promises rhs.index/count list all nonzeros; then a
+  // hyper-sparse solve (O(reach)) is used when the input is sparse enough.
+  void ftran(HVector& rhs, bool sparseInput = false) const;
   // Solves B^T y = e. In: indexed by basic position. Out: indexed by row.
-  void btran(HVector& rhs) const;
+  void btran(HVector& rhs, bool sparseInput = false) const;
+  double hyperDensity = 0.10;
   // Records a basis change at `pos`; `column` must be B^{-1} a_q (FTRAN result).
   void update(const HVector& column, int pos);
   int numUpdates() const { return static_cast<int>(etaPos_.size()); }
@@ -55,6 +58,13 @@ class LuFactor {
  private:
   void clearFactors();
   void buildUColumns();
+  void buildHyperSparse();
+  void ftranDense(HVector& v) const;
+  void btranDense(HVector& v) const;
+  void ftranHyper(HVector& v) const;
+  void btranHyper(HVector& v) const;
+  template <class Next>
+  void reach(std::vector<int>& seeds, std::vector<int>& out, Next next) const;
 
   int m_ = 0, n_ = 0;
   const SparseMatrix* A_ = nullptr;
@@ -73,6 +83,13 @@ class LuFactor {
   std::vector<int> etaPos_, etaStart_, etaIndex_;
   std::vector<double> etaPivot_, etaValue_;
 
+  // hyper-sparse structures and scratch
+  std::vector<int> rowStep_, lrStart_, lrStep_;
+  std::vector<double> lrValue_;
+  bool hyperOk_ = false;
+  mutable std::vector<int> visit_, pmark_, seeds_, order_, outIdx_, dfsStack_;
+  mutable int stamp_ = 0, pstamp_ = 0;
+  mutable double ftranDensity_ = 0, btranDensity_ = 0;  // running result densities
   // work arrays
   mutable std::vector<double> work_;
   mutable std::vector<char> mark_;

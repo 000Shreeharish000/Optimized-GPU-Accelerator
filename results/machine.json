@@ -1,0 +1,7 @@
+{
+ "platform": "Windows-10-10.0.26200-SP0",
+ "processor": "AMD64 Family 25 Model 116 Stepping 1, AuthenticAMD",
+ "python": "3.10.11",
+ "cpu_count": 16,
+ "pramana_info": "PRAMANA 1.0\n  solver core      : own code (C++20), no solver libraries linked\n  threads          : 16\n  gpu              : NVIDIA GeForce RTX 4050 Laptop GPU\n  compute cap.     : 8.9, 20 SMs, 6.4 GB, peak 192 GB/s\n  kernels          : own CUDA C, PTX from cache\n{\n \"available\": true,\n \"name\": \"NVIDIA GeForce RTX 4050 Laptop GPU\",\n \"reason\": \"\",\n \"compute_capability\": \"8.9\",\n \"multiprocessors\": 20,\n \"memory_bytes\": 6438780928,\n \"peak_bandwidth_GBs\": 192.024,\n \"driver_version\": 13010,\n \"nvrtc\": \"\",\n \"ptx_from_cache\": true\n}\n"
+}

@@ -155,7 +155,7 @@ class BranchAndBound {
         if (std::fabs(x[j] - std::round(x[j])) > kIntTol) return false;
         x[j] = std::round(x[j]);
       }
-    if (!rowsFeasible(x, 1e-7)) return false;
+    if (!rowsFeasible(x, 5e-7)) return false;
     double obj = model_.objective(x);
     if (obj >= incumbentObj_ - 1e-12 * (1 + std::fabs(obj))) return false;
     incumbentObj_ = obj;
@@ -182,7 +182,32 @@ class BranchAndBound {
     std::vector<double> r = x;
     for (int j = 0; j < n_; ++j)
       if (isInt_[j]) r[j] = std::min(std::max(std::round(x[j]), curLo_[j]), curUp_[j]);
-    if (rowsFeasible(r, 1e-7)) offerIncumbent(r, "rounding");
+    if (rowsFeasible(r, 5e-7)) offerIncumbent(r, "rounding");
+  }
+  // Integers of an (almost) integral LP point are fixed at their rounded values
+  // and the continuous part is re-optimized, so round-off in the LP solution can
+  // never cost us a feasible incumbent. LP state is restored afterwards.
+  bool fixAndResolve(const std::vector<double>& x, const std::vector<double>& lo, const std::vector<double>& up,
+                     const char* source) {
+    auto basis = saveBasis();
+    std::vector<double> l2 = lo, u2 = up;
+    for (int j = 0; j < n_; ++j)
+      if (isInt_[j]) {
+        double v = std::min(std::max(std::round(x[j]), lo[j]), up[j]);
+        l2[j] = u2[j] = v;
+      }
+    applyBounds(l2, u2);
+    Status st = solveLp(20000);
+    bool ok = st == Status::Optimal && offerIncumbent(lp_->colValues(), source);
+    restoreLp(lo, up, *basis);
+    return ok;
+  }
+  // Integer columns with any deviation from integrality (tight tolerance).
+  std::vector<int> deviations(const std::vector<double>& x) const {
+    std::vector<int> f;
+    for (int j = 0; j < n_; ++j)
+      if (isInt_[j] && std::fabs(x[j] - std::round(x[j])) > 1e-9) f.push_back(j);
+    return f;
   }
   std::vector<int> fractionals(const std::vector<double>& x) const {
     std::vector<int> f;
@@ -246,7 +271,7 @@ class BranchAndBound {
         for (int k = 0; k < T && k < static_cast<int>(sc.size()); ++k) xt[sc[k].second] = 1 - xt[sc[k].second];
       }
       prev = xt;
-      if (rowsFeasible(xt, 1e-7) && offerIncumbent(xt, "feaspump")) break;
+      if (rowsFeasible(xt, 5e-7) && offerIncumbent(xt, "feaspump")) break;
       for (int j = 0; j < n_; ++j) lp_->setColCost(j, 0.0);
       for (int j : bins) lp_->setColCost(j, xt[j] < 0.5 ? 1.0 : -1.0);
       Status st = solveLp(3000);
@@ -452,7 +477,7 @@ MipResult BranchAndBound::run() {
   if (opt_.heuristics) roundingHeuristic(x);
   if (opt_.cuts) rootCuts(x, obj);
   stats_.rootBoundAfterCuts = obj;
-  if (fractionals(x).empty()) offerIncumbent(x, "lp");
+  if (fractionals(x).empty() && !offerIncumbent(x, "lp")) fixAndResolve(x, rootLo_, rootUp_, "lp-fixed");
   if (opt_.heuristics && !fractionals(x).empty()) {
     diving(rootLo_, rootUp_, "diving");
     if (!fin(incumbentObj_)) feasibilityPump(rootLo_, rootUp_);
@@ -571,8 +596,14 @@ MipResult BranchAndBound::run() {
     std::vector<int> fr = fractionals(x);
     if (fr.empty()) {
       stats_.integralLeaves++;
-      offerIncumbent(x, "lp");
-      continue;
+      if (offerIncumbent(x, "lp") || fixAndResolve(x, lo, up, "lp-fixed") || nb >= cutoff()) continue;
+      // Integral within tolerance but not acceptable even after re-optimizing the
+      // continuous part: never discard a node without proof - keep branching.
+      fr = deviations(x);
+      if (fr.empty()) {
+        unsolvedBounds.push_back(nb);  // cannot branch further: its bound stays in the global bound
+        continue;
+      }
     }
     if (opt_.heuristics) {
       roundingHeuristic(x);
@@ -587,8 +618,10 @@ MipResult BranchAndBound::run() {
     double xj = x[j];
     if (std::fabs(xj - std::round(xj)) <= kIntTol) {  // strong branching changed the solution
       fr = fractionals(x);
+      if (fr.empty()) fr = deviations(x);
       if (fr.empty()) {
-        offerIncumbent(x, "lp");
+        if (!offerIncumbent(x, "lp") && !fixAndResolve(x, lo, up, "lp-fixed") && nb < cutoff())
+          unsolvedBounds.push_back(nb);
         continue;
       }
       j = fr[0];

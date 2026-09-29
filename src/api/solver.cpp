@@ -58,6 +58,15 @@ Json simplexStatsJson(const SimplexStats& s) {
   j["scaling_range_before"] = s.scalingRangeBefore;
   j["scaling_range_after"] = s.scalingRangeAfter;
   j["seconds"] = s.timeSeconds;
+  Json prof = Json::object();
+  prof["chuzr"] = s.tChuzr;
+  prof["btran"] = s.tBtran;
+  prof["price"] = s.tPrice;
+  prof["chuzc"] = s.tChuzc;
+  prof["ftran_dse"] = s.tFtran;
+  prof["updates"] = s.tUpdate;
+  prof["factorize"] = s.tFactor;
+  j["profile_seconds"] = prof;
   return j;
 }
 
@@ -288,11 +297,11 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
   tel["router"] = dec.toJson();
   tel["router"]["requested"] = opt.algorithm;
   tel["router"]["selected"] = engine;
-  if (opt.algorithm != "auto" || engine == "pdhg-gpu" || engine == "race") tel["gpu"] = gpuInfoJson();
+  if (engine == "pdhg-gpu" || engine == "race") tel["gpu"] = gpuInfoJson();  // (initializes CUDA)
 
   // ---- Presolve ----
   Presolver pre;
-  bool usePre = opt.presolve && !isQp;
+  bool usePre = opt.presolve;  // QP: row reductions only (see presolve.h)
   const Model* work = &minModel;
   if (usePre) {
     Timer t;
@@ -345,7 +354,57 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
     mo.logLevel = opt.logLevel;
     mo.seed = opt.seed;
     mo.lp = simplexOptionsFrom(opt);
-    MipResult r = solveMip(*work, mo, &dl);
+    MipResult r;
+    const int racers = opt.mipThreads > 1 ? opt.mipThreads : 1;
+    Json raceJson = Json::object();
+    if (racers == 1) {
+      r = solveMip(*work, mo, &dl);
+    } else {
+      // Concurrent MIP racing: diversified branch-and-cut runs on separate threads.
+      // First proof wins and cancels the others; otherwise combine the best
+      // incumbent with the MAXIMUM of the rigorous lower bounds (all valid).
+      static const char* rules[] = {"reliability", "pseudocost", "reliability", "mostfrac", "strong", "pseudocost"};
+      std::vector<MipResult> res(racers);
+      std::atomic<bool> stop{false};
+      std::atomic<int> winner{-1};
+      std::vector<std::thread> th;
+      for (int k = 0; k < racers; ++k)
+        th.emplace_back([&, k]() {
+          MipOptions mk = mo;
+          mk.branching = rules[k % 6];
+          mk.seed = opt.seed + 7919ULL * k;
+          mk.lp.seed = mk.seed;
+          mk.logLevel = k == 0 ? mo.logLevel : 0;
+          if (k % 2 == 1) mk.cutRounds = std::max(2, mo.cutRounds / 2);
+          Deadline d(opt.timeLimit);
+          d.setCancelFlag(&stop);
+          res[k] = solveMip(*work, mk, &d);
+          if (res[k].status == Status::Optimal || res[k].status == Status::Infeasible) {
+            int expected = -1;
+            if (winner.compare_exchange_strong(expected, k)) stop = true;
+          }
+        });
+      for (auto& t : th) t.join();
+      int w = winner.load();
+      if (w >= 0) {
+        r = res[w];
+      } else {
+        int best = 0;
+        double bound = -kInf;
+        bool safe = true;
+        for (int k = 0; k < racers; ++k) {
+          if (res[k].objective < res[best].objective) best = k;
+          if (res[k].bestBound > bound) bound = res[k].bestBound, safe = res[k].boundSafe;
+        }
+        r = res[best];
+        r.bestBound = std::min(bound, r.objective);
+        r.boundSafe = safe;
+        r.status = dl.expired() ? Status::TimeLimit : r.status;
+      }
+      raceJson["racers"] = racers;
+      raceJson["winner"] = w;
+      raceJson["winner_branching"] = w >= 0 ? rules[w % 6] : "none";
+    }
     out.engine = "branch-and-cut";
     out.status = r.status;
     out.objective = r.objective;
@@ -379,6 +438,7 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
     mj["max_safe_bound_correction"] = s.maxSafeBoundCorrection;
     mj["bound_is_safe"] = r.boundSafe;
     mj["progress_t_incumbent_bound_minform"] = r.progress;
+    if (racers > 1) mj["concurrent_race"] = raceJson;
     out.stats["mip"] = mj;
   } else if (isQp) {
     IpmOptions io;
@@ -420,7 +480,11 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
     if (out.status == Status::Infeasible || out.status == Status::Unbounded ||
         out.status == Status::InfeasibleOrUnbounded) {
       // Rays live in the reduced space; re-derive the proof on the original model.
-      if (isMip) {
+      if (isQp) {
+        // No LP-based proof for a QP (it would ignore Q): keep the engine status, unproven.
+        fin_.status = out.status == Status::InfeasibleOrUnbounded ? Status::InfeasibleOrUnbounded : out.status;
+        fin_.x.clear();
+      } else if (isMip) {
         MipOptions mo;
         mo.logLevel = 0;
         mo.lp = simplexOptionsFrom(opt);
@@ -434,7 +498,7 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
         fin_ = fromLp(solveLpSimplex(minModel, simplexOptionsFrom(opt), &dl), "dual-simplex (original, proof)");
         fin_.engine = out.engine + " -> proof by dual simplex on original";
       }
-    } else if (!out.x.empty()) {
+    } else if (!out.x.empty() || (work->numCols() == 0 && out.status == Status::Optimal)) {
       Presolver::Solution rs;
       rs.x = out.x;
       rs.rowDual = out.y;
@@ -485,8 +549,31 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
   if (opt.certify) {
     res.certificate = certify(input, claim, opt.certTol);
     res.status = res.certificate.certified;
+    // A feasible point whose optimality could not be proven (e.g. a first-order
+    // answer at 1e-6 that crossover did not finish): report it as approximate,
+    // with the rigorous bound, rather than as a numerical failure.
+    if (!res.certificate.accepted && fin_.status == Status::Optimal && !fin_.x.empty() &&
+        res.certificate.maxPrimalViolation <= opt.certTol.primalFeas)
+      res.status = Status::IterationLimit;
   } else {
     res.status = fin_.status;
+  }
+  // Unproven LP but presolve saw a row whose activity bounds exclude its range:
+  // try that one-row Farkas certificate (rigorously checked on the original model).
+  if (opt.certify && !isQp && pre.certificateRow() >= 0 &&
+      !(res.status == Status::Optimal || res.status == Status::Infeasible || res.status == Status::Unbounded)) {
+    SolutionClaim fc;
+    fc.status = Status::Infeasible;
+    fc.farkas.assign(input.numRows(), 0.0);
+    fc.farkas[pre.certificateRow()] = pre.certificateSign();
+    Certificate c2 = certify(input, fc, opt.certTol);
+    if (c2.accepted) {
+      res.certificate = c2;
+      res.status = Status::Infeasible;
+      fin_.farkas = fc.farkas;
+      fin_.x.clear();
+      tel["presolve"]["farkas_certificate_row"] = pre.certificateRow();
+    }
   }
   timing["certify"] = ct.seconds();
 

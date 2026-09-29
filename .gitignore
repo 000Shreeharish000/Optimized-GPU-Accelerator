@@ -1,0 +1,12 @@
+build/
+data/netlib/
+data/netlib_infeas/
+data/miplib3/
+data/miplib2017/
+data/maros/
+data/tools/
+results/bin/
+results/*/json/
+*.log
+__pycache__/
+.pytest_cache/

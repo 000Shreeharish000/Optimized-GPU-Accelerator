@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 #include "ipm/ldl.h"
 #include "lp/scaling.h"
@@ -90,7 +91,25 @@ ConvexityResult checkConvexity(const SparseMatrix& Q) {
 // ---------------------------------------------------------------------------
 // IPM
 // ---------------------------------------------------------------------------
+static IpmResult solveIpmOnce(const Model& model, const IpmOptions& opts, const Deadline* deadline);
+
+// Multi-start: neither starting point dominates (free variables with bounds-as-rows
+// favour the least-squares start, tiny boxes favour the centered start), so a run that
+// does not reach a proven optimum is repeated from the other start.
 IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* deadline) {
+  if (opts.startMode >= 0) return solveIpmOnce(model, opts, deadline);
+  IpmOptions o = opts;
+  o.startMode = 0;
+  IpmResult a = solveIpmOnce(model, o, deadline);
+  if (a.status == Status::Optimal || (deadline && deadline->expired())) return a;
+  o.startMode = 1;
+  IpmResult b = solveIpmOnce(model, o, deadline);
+  b.stats.iterations += a.stats.iterations;
+  if (b.status == Status::Optimal) return b;
+  return a.stats.finalGap <= b.stats.finalGap ? a : b;
+}
+
+static IpmResult solveIpmOnce(const Model& model, const IpmOptions& opts, const Deadline* deadline) {
   Timer timer;
   IpmResult out;
   const int n0 = model.numCols(), m0 = model.numRows();
@@ -101,8 +120,10 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
   std::vector<int> freeCols;
   std::vector<double> fixedVal(n0, 0.0);
   for (int j = 0; j < n0; ++j) {
-    if (model.colLower[j] == model.colUpper[j]) {
-      fixedVal[j] = model.colLower[j];
+    // Near-zero-width boxes are fixed: an interior point in a 1e-10 sliver cripples every step.
+    const double lo = model.colLower[j], up = model.colUpper[j];
+    if (lo == up || (fin(lo) && fin(up) && up - lo <= 1e-9 * (1 + std::fabs(lo)))) {
+      fixedVal[j] = 0.5 * (lo + up);
     } else {
       colMap[j] = static_cast<int>(freeCols.size());
       freeCols.push_back(j);
@@ -120,7 +141,8 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
   std::vector<int> rowSlack(m, -1);
   for (int r = 0; r < m; ++r) {
     int i = keptRows[r];
-    if (model.rowLower[i] != model.rowUpper[i]) {
+    const double rlo = model.rowLower[i], rup = model.rowUpper[i];
+    if (!(rlo == rup || (fin(rlo) && fin(rup) && rup - rlo <= 1e-9 * (1 + std::fabs(rlo))))) {
       rowSlack[r] = nx + static_cast<int>(slackRow.size());
       slackRow.push_back(r);
     }
@@ -183,7 +205,7 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
       aj.push_back(rowSlack[r]);
       av.push_back(-1.0);
     } else {
-      b[r] += model.rowLower[i];
+      b[r] += 0.5 * (model.rowLower[i] + model.rowUpper[i]);
     }
   }
   SparseMatrix A = SparseMatrix::fromTriplets(m, n, ai, aj, av);
@@ -284,7 +306,7 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
     rhs = sol;
   };
 
-  // ---- Starting point ----
+  // ---- Starting point: two candidates, keep the one with the better KKT merit ----
   std::vector<double> x(n, 0.0), y(m, 0.0), zl(n, 0.0), zu(n, 0.0);
   std::vector<char> hasL(n), hasU(n);
   for (int j = 0; j < n; ++j) {
@@ -292,58 +314,103 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
     hasU[j] = fin(up[j]);
   }
   {
+    auto interiorPush = [&](std::vector<double>& xv, double shift) {
+      for (int j = 0; j < n; ++j) {
+        if (hasL[j] && hasU[j]) {
+          double w = up[j] - lo[j];
+          double mg = std::min(0.5 * w, std::max(0.1 * std::min(w, 10.0), std::min(1.0, 0.5 * w)));
+          xv[j] = std::min(std::max(xv[j], lo[j] + mg), up[j] - mg);
+        } else if (hasL[j]) {
+          xv[j] = std::max(xv[j], lo[j] + shift);
+        } else if (hasU[j]) {
+          xv[j] = std::min(xv[j], up[j] - shift);
+        }
+      }
+    };
+    auto dualsFor = [&](const std::vector<double>& xv, const std::vector<double>& yv, std::vector<double>& zlv,
+                        std::vector<double>& zuv, bool center) {
+      std::vector<double> rdv = c;
+      Q.multiply(xv.data(), rdv.data());
+      AT.multiply(yv.data(), rdv.data(), -1.0);  // c + Qx - A^T y
+      zlv.assign(n, 0.0);
+      zuv.assign(n, 0.0);
+      for (int j = 0; j < n; ++j) {
+        double r = std::min(std::fabs(rdv[j]), 1e4);
+        if (hasL[j]) zlv[j] = std::max(1.0, rdv[j] > 0 ? r : 0.0);
+        if (hasU[j]) zuv[j] = std::max(1.0, rdv[j] < 0 ? r : 0.0);
+      }
+      if (!center) return;
+      // Center: raise z so that every complementarity product s_j z_j >= mu0 (a point
+      // with tiny slacks and unit duals makes the first affine step collapse).
+      double mu0 = 0;
+      int cnt = 0;
+      for (int j = 0; j < n; ++j) {
+        if (hasL[j]) mu0 += (xv[j] - lo[j]) * zlv[j], ++cnt;
+        if (hasU[j]) mu0 += (up[j] - xv[j]) * zuv[j], ++cnt;
+      }
+      mu0 = cnt ? std::max(1.0, mu0 / cnt) : 1.0;
+      for (int j = 0; j < n; ++j) {
+        if (hasL[j]) zlv[j] = std::max(zlv[j], mu0 / std::max(xv[j] - lo[j], 1e-12));
+        if (hasU[j]) zuv[j] = std::max(zuv[j], mu0 / std::max(up[j] - xv[j], 1e-12));
+      }
+    };
+    auto merit = [&](const std::vector<double>& xv, const std::vector<double>& yv, const std::vector<double>& zlv,
+                     const std::vector<double>& zuv) {
+      std::vector<double> rpv = b;
+      A.multiply(xv.data(), rpv.data(), -1.0);
+      std::vector<double> rdv = c;
+      Q.multiply(xv.data(), rdv.data());
+      AT.multiply(yv.data(), rdv.data(), -1.0);
+      for (int j = 0; j < n; ++j) rdv[j] += -zlv[j] + zuv[j];
+      double mu = 0;
+      int cnt = 0;
+      for (int j = 0; j < n; ++j) {
+        if (hasL[j]) mu += (xv[j] - lo[j]) * zlv[j], ++cnt;
+        if (hasU[j]) mu += (up[j] - xv[j]) * zuv[j], ++cnt;
+      }
+      mu = cnt ? mu / cnt : 0;
+      double s = std::log1p(infNorm(rpv)) + std::log1p(infNorm(rdv)) + std::log1p(std::fabs(mu));
+      return std::isfinite(s) ? s : kInf;
+    };
+    // Candidate 1: bound-aware interior point, y = 0.
+    std::vector<double> x1(n, 0.0), y1(m, 0.0), zl1, zu1;
+    for (int j = 0; j < n; ++j) {
+      if (hasL[j] && hasU[j]) x1[j] = 0.0;
+      else if (hasL[j]) x1[j] = std::max(0.0, lo[j] + 1.0);
+      else if (hasU[j]) x1[j] = std::min(0.0, up[j] - 1.0);
+    }
+    interiorPush(x1, 1.0);
+    dualsFor(x1, y1, zl1, zu1, true);
+    double m1 = merit(x1, y1, zl1, zu1);
+    // Candidate 2: regularized least squares  min 1/2||x - x0||^2  s.t. Ax = b.
     std::vector<double> theta(n, 1.0);
     setDiag(theta, opts.primalReg, opts.dualReg);
     out.stats.regularizedPivots += ldl.factorize(K, signs, 1e-10);
-    // min 1/2||x - x0||^2 + c^T x  s.t. Ax = b   (a regularized least-squares start)
     std::vector<double> rhs(N, 0.0);
-    for (int j = 0; j < n; ++j) {
-      double x0 = 0;
-      if (hasL[j] && hasU[j]) x0 = 0.5 * (lo[j] + up[j]);
-      else if (hasL[j]) x0 = lo[j];
-      else if (hasU[j]) x0 = up[j];
-      rhs[j] = -x0;
-    }
+    for (int j = 0; j < n; ++j) rhs[j] = -x1[j];
     for (int r = 0; r < m; ++r) rhs[n + r] = b[r];
-    std::vector<double> rhsX0(rhs.begin(), rhs.begin() + n);
     kktSolve(rhs);
-    double scaleRef = 1.0 + infNorm(b);
-    for (int j = 0; j < n; ++j) {
-      if (hasL[j]) scaleRef = std::max(scaleRef, std::fabs(lo[j]));
-      if (hasU[j]) scaleRef = std::max(scaleRef, std::fabs(up[j]));
-    }
-    bool lsOk = allFinite(rhs) && infNorm(rhs) < 1e8 * scaleRef;
-    for (int j = 0; j < n; ++j) x[j] = lsOk ? rhs[j] : -rhsX0[j];
-    for (int r = 0; r < m; ++r) y[r] = lsOk ? rhs[n + r] : 0.0;
-    // Push into the interior.
-    double shift = 0;
-    for (int j = 0; j < n; ++j) {
-      if (hasL[j] && hasU[j]) continue;
-      if (hasL[j]) shift = std::max(shift, lo[j] - x[j]);
-      if (hasU[j]) shift = std::max(shift, x[j] - up[j]);
-    }
-    shift = std::max(1.0, 1.5 * shift);
-    for (int j = 0; j < n; ++j) {
-      if (hasL[j] && hasU[j]) {
-        double w = up[j] - lo[j];
-        double mg = std::min(0.5 * w, std::max(0.1 * w, std::min(1.0, 0.5 * w)));
-        x[j] = std::min(std::max(x[j], lo[j] + mg), up[j] - mg);
-      } else if (hasL[j]) {
-        x[j] = std::max(x[j], lo[j] + shift);
-      } else if (hasU[j]) {
-        x[j] = std::min(x[j], up[j] - shift);
+    double m2 = kInf;
+    std::vector<double> x2(n), y2(m), zl2, zu2;
+    if (allFinite(rhs)) {
+      for (int j = 0; j < n; ++j) x2[j] = rhs[j];
+      for (int r = 0; r < m; ++r) y2[r] = rhs[n + r];
+      double shift = 0;
+      for (int j = 0; j < n; ++j) {
+        if (hasL[j] && hasU[j]) continue;
+        if (hasL[j]) shift = std::max(shift, lo[j] - x2[j]);
+        if (hasU[j]) shift = std::max(shift, x2[j] - up[j]);
       }
+      interiorPush(x2, std::max(1.0, 1.5 * shift));
+      dualsFor(x2, y2, zl2, zu2, false);
+      m2 = merit(x2, y2, zl2, zu2);
     }
-    // Duals: z from the dual residual, kept positive.
-    std::vector<double> rd = c;
-    Q.multiply(x.data(), rd.data());
-    AT.multiply(y.data(), rd.data(), -1.0);  // rd = c + Qx - A^T y
-    double zshift = 1.0;
-    for (int j = 0; j < n; ++j) zshift = std::max(zshift, std::fabs(rd[j]));
-    zshift = std::min(zshift, 1e4);
-    for (int j = 0; j < n; ++j) {
-      if (hasL[j]) zl[j] = std::max(1.0, rd[j] > 0 ? rd[j] : 0.0) + 0.0 * zshift;
-      if (hasU[j]) zu[j] = std::max(1.0, rd[j] < 0 ? -rd[j] : 0.0);
+    // startMode 0: least-squares start; 1: bound-aware centered start; -1: better merit.
+    bool useLs = opts.startMode == 0 ? m2 < kInf : (opts.startMode == 1 ? false : m2 < m1);
+    if (useLs) {
+      x = x2, y = y2, zl = zl2, zu = zu2;
+    } else {
+      x = x1, y = y1, zl = zl1, zu = zu1;
     }
   }
 
@@ -355,7 +422,7 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
   std::vector<double> dxa(n), dzla(n), dzua(n);
   Status status = Status::IterationLimit;
   double pobj = 0, dobj = 0;
-  double lastStep = 1.0;
+  double lastStep = 1.0, lastAp = 0, lastAd = 0;
   // Best iterate by KKT merit (restored on breakdown / stagnation).
   double bestMerit = kInf;
   int bestIter = 0;
@@ -408,8 +475,8 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
     out.stats.finalGap = relGap;
     out.stats.finalMu = mu;
     if (opts.logLevel > 0)
-      PLOG_INFO("  ipm %3d  pobj % .10e  dobj % .10e  pres %.2e  dres %.2e  gap %.2e  mu %.2e", iter, pobj, dobj,
-                relP, relD, relGap, mu);
+      PLOG_INFO("  ipm %3d  pobj % .10e  dobj % .10e  pres %.2e  dres %.2e  gap %.2e  mu %.2e  ap %.1e ad %.1e", iter,
+                pobj, dobj, relP, relD, relGap, mu, lastAp, lastAd);
     const double merit = std::max(relP, std::max(relD, relGap));
     if (!std::isfinite(merit)) {
       status = Status::NumericalFailure;
@@ -441,7 +508,7 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
       double t = 0;
       if (hasL[j]) t += zl[j] / (x[j] - lo[j]);
       if (hasU[j]) t += zu[j] / (up[j] - x[j]);
-      theta[j] = std::min(t, 1e30);
+      theta[j] = std::min(t, 1e20);
     }
     double rho = std::max(opts.primalReg, 1e-12), delta = std::max(opts.dualReg, 1e-12);
     setDiag(theta, rho, delta);
@@ -518,8 +585,10 @@ IpmResult solveIpm(const Model& model, const IpmOptions& opts, const Deadline* d
     const double eta = std::max(0.9, 1.0 - 10.0 * mu);
     ap = std::min(1.0, eta * ap);
     ad = std::min(1.0, eta * ad);
-    if (isQp) ap = ad = std::min(ap, ad);
+    if (isQp && !std::getenv("IPM_SEPARATE_STEPS")) ap = ad = std::min(ap, ad);
     lastStep = std::min(ap, ad);
+    lastAp = ap;
+    lastAd = ad;
     for (int j = 0; j < n; ++j) {
       x[j] += ap * dx[j];
       zl[j] += ad * dzl[j];

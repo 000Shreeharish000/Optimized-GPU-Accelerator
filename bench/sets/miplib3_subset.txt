@@ -1,0 +1,46 @@
+# Pre-registered MIPLIB 3 subset (committed BEFORE running PRAMANA on it).
+# Rule: all MIPLIB 3 instances with <= 10,000 nonzeros and a known optimum listed in
+# miplib3.cat, plus the classic "hard but tiny" markshare pair (weak relaxations).
+# Every instance here is reported, including timeouts and failures.
+p0033
+p0201
+p0282
+p0548
+p2756
+lseu
+mod008
+mod010
+stein27
+stein45
+egout
+enigma
+flugpl
+gt2
+bell3a
+bell5
+rgn
+vpm1
+vpm2
+dcmulti
+fixnet6
+khb05250
+misc03
+misc06
+misc07
+pk1
+pp08a
+pp08aCUTS
+qnet1
+qnet1_o
+blend2
+gesa2
+gesa2_o
+gesa3
+gesa3_o
+set1ch
+mas74
+mas76
+noswot
+10teams
+markshare1
+markshare2

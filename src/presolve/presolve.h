@@ -47,6 +47,9 @@ class Presolver {
   // Reduced -> original index maps.
   const std::vector<int>& colMap() const { return colOrig_; }
   const std::vector<int>& rowMap() const { return rowOrig_; }
+  // A row whose activity bounds strictly miss its range (candidate Farkas ray +-e_i), or -1.
+  int certificateRow() const { return certRow_; }
+  int certificateSign() const { return certSign_; }
 
  private:
   enum class Kind { FixedCol, EmptyRow, SingletonRow, RedundantRow, ForcingRow, FreeColSingleton };
@@ -78,6 +81,8 @@ class Presolver {
   std::vector<std::vector<double>> forcingCosts_;
   std::vector<int> colOrig_, rowOrig_;
   bool infeasible_ = false, unbounded_ = false;
+  bool qp_ = false;
+  int certRow_ = -1, certSign_ = 0;  // quadratic objective: only row reductions (singleton / empty / redundant)
 };
 
 }  // namespace pramana

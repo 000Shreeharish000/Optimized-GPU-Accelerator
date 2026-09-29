@@ -66,6 +66,8 @@ struct SimplexStats {
   double scalingRangeBefore = 0, scalingRangeAfter = 0;
   double lastConditionEstimate = 0;
   double timeSeconds = 0;
+  // per-phase profile of dual phase 2 (seconds)
+  double tChuzr = 0, tBtran = 0, tPrice = 0, tChuzc = 0, tFtran = 0, tUpdate = 0, tFactor = 0;
 };
 
 class Simplex {
@@ -145,6 +147,18 @@ class Simplex {
   bool limitReached(const Deadline* dl);
   void logIteration(const char* phase);
   double primalInfeasibilitySum() const;
+  // Squared primal infeasibility of the basic variable at each position (dual CHUZR).
+  void refreshInfeas(int p) {
+    int v = basicIndex_[p];
+    double x = value_[v], inf = 0;
+    if (x < lower_[v] - tolP_[v]) inf = lower_[v] - x;
+    else if (x > upper_[v] + tolP_[v]) inf = x - upper_[v];
+    infeas_[p] = inf * inf;
+  }
+  void refreshAllInfeas() {
+    infeas_.resize(m_);
+    for (int p = 0; p < m_; ++p) refreshInfeas(p);
+  }
   bool farkasHolds(const std::vector<double>& yScaled) const;
 
   SimplexOptions opt_;
@@ -169,6 +183,7 @@ class Simplex {
   std::vector<double> dual_;   // reduced costs (nonbasic), 0 for basic
   std::vector<double> y_;      // row duals (scaled)
   std::vector<double> dseWeight_;
+  std::vector<double> infeas_;
   std::vector<double> devex_;
 
   LuFactor lu_;
