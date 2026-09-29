@@ -192,7 +192,8 @@ PTEST(mip_miplib_small_optima) {
   struct Ref {
     const char* name;
     double obj;
-  } refs[] = {{"p0033", 3089}, {"lseu", 1120}, {"egout", 568.1007}, {"gt2", 21166}};
+  } refs[] = {{"p0033", 3089}, {"lseu", 1120}, {"egout", 568.1007}, {"gt2", 21166},
+              {"p2756", 3124}, {"p0548", 8691}, {"p0282", 258411}};  // p2756/p0548: coefficient tightening
   for (auto& r : refs) {
     Model m = readMps(dataPath(std::string("data/miplib3/") + r.name + ".mps.gz"));
     SolverOptions o;

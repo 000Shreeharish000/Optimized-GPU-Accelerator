@@ -24,6 +24,7 @@ struct PresolveStats {
   int rowsRemoved = 0, colsRemoved = 0, nnzRemoved = 0;
   int emptyRows = 0, emptyCols = 0, fixedCols = 0, singletonRows = 0, redundantRows = 0;
   int forcingRows = 0, dominatedCols = 0, freeColSingletons = 0, boundsTightened = 0;
+  int coefficientsTightened = 0;
   int passes = 0;
   double seconds = 0;
 };

@@ -1,0 +1,134 @@
+{
+ "solver": "PRAMANA 1.0",
+ "model": "REFPLAN_20x52",
+ "status": "ITERATION_LIMIT",
+ "engine_status": "OPTIMAL",
+ "engine": "pdhg-cpu",
+ "objective": 524258.98167169822,
+ "best_bound": 524668.27850389469,
+ "relative_gap": 0.00078071496437000058,
+ "seconds": 2.4086884999999998,
+ "certificate": {
+  "claimed_status": "OPTIMAL",
+  "certified_status": "NUMERICAL_FAILURE",
+  "accepted": false,
+  "primal_objective": 524258.98167169822,
+  "safe_dual_bound": 524668.27850389469,
+  "certified_relative_gap": 0.00078071496437000058,
+  "max_primal_violation": 0.094978327540133023,
+  "max_dual_violation": 0,
+  "max_integrality_violation": 0,
+  "cost_perturbation_backward_error": 0,
+  "checks": [
+   {
+    "check": "primal_bound_violation",
+    "verdict": "PASS",
+    "value": 0,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "max relative column-bound violation (unscaled)"
+   },
+   {
+    "check": "primal_row_violation",
+    "verdict": "FAIL",
+    "value": 0.094978327540133023,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "worst row GASRON_25"
+   },
+   {
+    "check": "safe_dual_bound_gap",
+    "verdict": "FAIL",
+    "value": 0.00078071496437000058,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "rigorous bound 524668.278504 (outward-rounded; exact for costs perturbed by <= 0.0e+00 rel.) using constraint-implied column bounds"
+   }
+  ]
+ },
+ "telemetry": {
+  "model": {
+   "rows": 16432,
+   "cols": 22256,
+   "nnz": 64559,
+   "avg_row_nnz": 3.9288583252190845,
+   "max_row_nnz": 43,
+   "coefficient_range": 15456.640877875478,
+   "equality_row_fraction": 0.939873417721519,
+   "free_column_fraction": 0,
+   "is_mip": false,
+   "is_qp": false,
+   "name": "REFPLAN_20x52",
+   "integers": 0,
+   "q_nnz": 0,
+   "sense": "max"
+  },
+  "router": {
+   "engine": "pdhg-gpu",
+   "reason": "min predicted time 22.2s (dual 103, ipm 91.2, pdhg-cpu 331, pdhg-gpu 6.73) [default priors]",
+   "calibrated_model": false,
+   "predicted_seconds": {
+    "dual": 102.83008210412284,
+    "ipm": 91.238969172542539,
+    "pdhg-cpu": 331.35484573906223,
+    "pdhg-gpu": 6.7255605118229571
+   },
+   "features": {
+    "rows": 16432,
+    "cols": 22256,
+    "nnz": 64559,
+    "avg_row_nnz": 3.9288583252190845,
+    "max_row_nnz": 43,
+    "coefficient_range": 15456.640877875478,
+    "equality_row_fraction": 0.939873417721519,
+    "free_column_fraction": 0,
+    "is_mip": false,
+    "is_qp": false
+   },
+   "requested": "pdhg-cpu",
+   "selected": "pdhg-cpu"
+  },
+  "presolve": {
+   "status": "reduced",
+   "rows_removed": 260,
+   "cols_removed": 0,
+   "nnz_removed": 260,
+   "singleton_rows": 260,
+   "forcing_rows": 0,
+   "redundant_rows": 0,
+   "empty_rows": 0,
+   "fixed_cols": 0,
+   "empty_cols": 0,
+   "dominated_cols": 0,
+   "free_col_singletons": 0,
+   "bounds_tightened": 260,
+   "coefficients_tightened": 0,
+   "passes": 2
+  },
+  "pdhg": {
+   "backend": "cpu",
+   "device": "16 threads",
+   "iterations": 7104,
+   "restarts": 9,
+   "relative_primal_residual": 8.4329206186736669e-05,
+   "relative_dual_residual": 1.2548228310182938e-05,
+   "relative_gap": 8.2991348666974814e-05,
+   "primal_weight": 0.038705889572283964,
+   "spectral_norm_estimate": 0.88410628804493763,
+   "setup_seconds": 0.0112966,
+   "solve_seconds": 2.2956110999999999,
+   "kernel_seconds": 2.2956110999999999,
+   "transfer_seconds": 0.0014086000000000001,
+   "bytes_uploaded": 0,
+   "bytes_downloaded": 0,
+   "kernel_launches": 0,
+   "relative_kkt": 8.4329206186736669e-05,
+   "objective": -524258.98167169833,
+   "dual_objective": -524346.00689690991
+  },
+  "timing": {
+   "presolve": 0.0065906000000000003,
+   "engine": 2.3075741000000001,
+   "postsolve": 0.00042059999999999998,
+   "certify": 0.0079936999999999994,
+   "total": 2.4086884999999998
+  }
+ }
+}

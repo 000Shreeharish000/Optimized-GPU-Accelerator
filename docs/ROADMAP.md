@@ -4,20 +4,38 @@
 
 - **Speed vs mature solvers.** On small Netlib LPs PRAMANA's dual simplex is within ~2× of HiGHS
   (shifted geometric mean); on larger LPs (10⁴–10⁵ rows) HiGHS is roughly an order of magnitude
-  faster. Missing: Forrest–Tomlin updates, hyper-sparse FTRAN/BTRAN with DFS, partial pricing,
-  parallel dual simplex.
-- **QP IPM.** A subset of Maros–Mészáros (LISWET*, HUES*, POWELL20, QSCAGR25, YAO, UBH1, ...) does
+  faster. Implemented: DSE, BFRT, adaptive hyper-sparse FTRAN/BTRAN, incremental CHUZR.
+  Missing: Forrest–Tomlin updates, partial/multiple pricing, parallel dual simplex.
+- **QP IPM.** A subset of Maros–Mészáros (LISWET*, HUES*, KSIP, YAO, UBH1, ...) does
   not converge within the limit; these are reported as ITERATION_LIMIT, never as wrong answers.
   Planned: Gondzio multiple centrality correctors, homogeneous self-dual embedding, QP crossover.
 - **MILP.** Hard MIPLIB instances time out (reported with certified gaps). Missing: conflict
-  analysis, symmetry, restarts, more cut families (flow cover, clique), parallel tree search.
-- **Tolerance semantics.** Models infeasible by less than the feasibility tolerance (e.g.
-  `infeasthin_50`, 1e-6 absolute) are reported as unproven rather than as infeasible.
+  analysis, symmetry, restarts, more cut families (flow cover, clique), a shared-tree parallel search
+  (today: concurrent diversified racing with `--mip-threads`).
+- **Scope of MIP certificates.** The incumbent is checked independently (feasibility, integrality,
+  objective), and the global bound is the minimum of Neumaier–Shcherbina safe node bounds. That bound
+  is only as valid as the presolve reductions and cutting planes beneath it. A presolve bug found
+  during development (coefficient tightening applied to the right-hand side but not the matrix) produced
+  a wrong "certified" optimum on p2756 that only the reference comparison exposed. It is fixed and
+  covered by unit tests; the planned remedy is VIPR-style tree certificates that re-derive every cut and
+  reduction.
+- **Largest planning LP (plan_60x156, 5.6·10⁵ nnz).** No PRAMANA engine proves optimality within
+  300 s in the final run (HiGHS: 92 s). Raw GPU PDHG gives a rigorous bound within ~1e-4 in 11 s, but
+  the crossover to an exact vertex does not finish in time. Next step: a PDHG-to-simplex handoff that
+  starts crossover from a 1e-6 point with a partial basis instead of a full basis guess.
+- **Timing variance and one unexplained GPU overrun.** The laptop used for the benchmarks varies by up
+  to ~2× between runs (thermal/power state). One GPU run (plan_60x156, pdhg-gpu + crossover) took
+  651 s under a 300 s limit, with 6× slower kernels than the neighbouring runs. The deadline is checked
+  every 64 iterations, so we suspect a power-state event; it has not been reproduced. Results must be
+  compared within one run, and the benchmark should be repeated on a desktop/datacenter GPU.
+- **Tolerance semantics.** A model infeasible by less than the feasibility tolerance is proven
+  infeasible only if a presolve activity bound yields a one-row Farkas certificate (e.g.
+  `infeasthin_50`); otherwise it is reported as unproven, never as optimal.
 
 ## v2 (next 3 months)
 
-- Forrest–Tomlin update and hyper-sparse solves; bound-flipping in primal; parallel strong branching.
-- Deterministic epoch-parallel B&B (option `mipThreads` is reserved in `SolverOptions`).
+- Forrest–Tomlin update; bound-flipping in primal; parallel strong branching.
+- Deterministic epoch-parallel shared-tree B&B (beyond today's concurrent racing).
 - Rational re-verification of the final LP basis inside the C++ binary (today: Python `--exact-basis`).
 - VIPR-style MIP tree certificates for small instances.
 - GPU: HIP/SYCL backends behind the existing `Backend` interface; FP32-storage SpMV experiment.

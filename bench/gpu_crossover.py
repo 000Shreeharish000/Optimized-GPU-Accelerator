@@ -49,7 +49,7 @@ def main():
             tag = eng + ("" if not extra else "_raw" + extra[-1])
             jf = OUT / f"{path.stem}.{tag}.json"
             try:
-                run(exe, [str(path), "--algo", eng, "--time", "600", "--log", "0", "--json", str(jf)] + extra, 1300)
+                run(exe, [str(path), "--algo", eng, "--time", "300", "--log", "0", "--json", str(jf)] + extra, 700)
                 j = json.loads(jf.read_text())
             except Exception as e:  # noqa: BLE001
                 rows.append({"model": path.stem, "config": tag, "status": f"ERROR {e}"})

@@ -1,0 +1,169 @@
+{
+ "solver": "PRAMANA 1.0",
+ "model": "REFPLAN_60x156",
+ "status": "TIME_LIMIT",
+ "engine_status": "TIME_LIMIT",
+ "engine": "pdhg-gpu",
+ "objective": 5410005.7166548325,
+ "seconds": 651.70765489999997,
+ "certificate": {
+  "claimed_status": "TIME_LIMIT",
+  "certified_status": "TIME_LIMIT",
+  "accepted": true,
+  "primal_objective": 5410005.7166548325,
+  "safe_dual_bound": -1e308,
+  "certified_relative_gap": 1e308,
+  "max_primal_violation": 0.032140595467912009,
+  "max_dual_violation": 0,
+  "max_integrality_violation": 0,
+  "cost_perturbation_backward_error": 0,
+  "checks": [
+   {
+    "check": "primal_bound_violation",
+    "verdict": "PASS",
+    "value": 1.208394101588056e-16,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "max relative column-bound violation (unscaled)"
+   },
+   {
+    "check": "primal_row_violation",
+    "verdict": "FAIL",
+    "value": 0.032140595467912009,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "worst row JETSUL_125"
+   }
+  ]
+ },
+ "telemetry": {
+  "model": {
+   "rows": 136656,
+   "cols": 191568,
+   "nnz": 561847,
+   "avg_row_nnz": 4.1113964992389649,
+   "max_row_nnz": 123,
+   "coefficient_range": 27473.498979778869,
+   "equality_row_fraction": 0.97831050228310501,
+   "free_column_fraction": 0,
+   "is_mip": false,
+   "is_qp": false,
+   "name": "REFPLAN_60x156",
+   "integers": 0,
+   "q_nnz": 0,
+   "sense": "max"
+  },
+  "router": {
+   "engine": "pdhg-gpu",
+   "reason": "min predicted time 476s (dual 3e+03, ipm 2.15e+03, pdhg-cpu 8.27e+03, pdhg-gpu 25.6) [default priors]",
+   "calibrated_model": false,
+   "predicted_seconds": {
+    "dual": 2999.5764609177095,
+    "ipm": 2149.3448050005195,
+    "pdhg-cpu": 8266.090856267354,
+    "pdhg-gpu": 25.563970400929275
+   },
+   "features": {
+    "rows": 136656,
+    "cols": 191568,
+    "nnz": 561847,
+    "avg_row_nnz": 4.1113964992389649,
+    "max_row_nnz": 123,
+    "coefficient_range": 27473.498979778869,
+    "equality_row_fraction": 0.97831050228310501,
+    "free_column_fraction": 0,
+    "is_mip": false,
+    "is_qp": false
+   },
+   "requested": "pdhg-gpu",
+   "selected": "pdhg-gpu"
+  },
+  "gpu": {
+   "available": true,
+   "name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+   "reason": "",
+   "compute_capability": "8.9",
+   "multiprocessors": 20,
+   "memory_bytes": 6438780928,
+   "peak_bandwidth_GBs": 192.024,
+   "driver_version": 13010,
+   "nvrtc": "",
+   "ptx_from_cache": true
+  },
+  "presolve": {
+   "status": "reduced",
+   "rows_removed": 780,
+   "cols_removed": 0,
+   "nnz_removed": 780,
+   "singleton_rows": 780,
+   "forcing_rows": 0,
+   "redundant_rows": 0,
+   "empty_rows": 0,
+   "fixed_cols": 0,
+   "empty_cols": 0,
+   "dominated_cols": 0,
+   "free_col_singletons": 0,
+   "bounds_tightened": 780,
+   "coefficients_tightened": 0,
+   "passes": 2
+  },
+  "pdhg": {
+   "backend": "gpu",
+   "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+   "iterations": 211007,
+   "restarts": 22,
+   "relative_primal_residual": 5.2608969287357343e-06,
+   "relative_dual_residual": 1.2031854513845925e-09,
+   "relative_gap": 1.1334794554479845e-05,
+   "primal_weight": 0.00072633834335342803,
+   "spectral_norm_estimate": 0.87596777602286635,
+   "setup_seconds": 0.1211358,
+   "solve_seconds": 650.41158949999999,
+   "kernel_seconds": 650.41131250000001,
+   "transfer_seconds": 0.045736700000000005,
+   "bytes_uploaded": 30493160,
+   "bytes_downloaded": 57827008,
+   "kernel_launches": 1704681,
+   "relative_kkt": 1.1334794554479845e-05,
+   "objective": -5410005.716654825,
+   "dual_objective": -5410128.3606629781
+  },
+  "crossover": {
+   "iterations": 0,
+   "dual_phase1_iterations": 0,
+   "dual_phase2_iterations": 0,
+   "primal_iterations": 0,
+   "degenerate_pivots": 0,
+   "degenerate_fraction": 0,
+   "bound_flips": 0,
+   "refactorizations": 2,
+   "numerical_refactors": 0,
+   "rejected_pivots": 0,
+   "rejected_farkas_rays": 0,
+   "singular_basis_repairs": 725,
+   "cost_shifts": 0,
+   "max_cost_shift": 0,
+   "perturbations": 1,
+   "max_perturbation": 0.15987618937093565,
+   "stall_recoveries": 0,
+   "dual_polish_passes": 0,
+   "scaling_range_before": 27473.498979778869,
+   "scaling_range_after": 59.703430602494784,
+   "seconds": 0.41399859999999999,
+   "profile_seconds": {
+    "chuzr": 0,
+    "btran": 0,
+    "price": 0,
+    "chuzc": 0,
+    "ftran_dse": 0,
+    "updates": 0,
+    "factorize": 0.24210899999999999
+   }
+  },
+  "timing": {
+   "presolve": 0.044988,
+   "engine": 650.97024380000005,
+   "postsolve": 0.0081604999999999994,
+   "certify": 0.0065913999999999999,
+   "total": 651.70765489999997
+  }
+ }
+}

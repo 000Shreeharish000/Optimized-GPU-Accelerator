@@ -1,0 +1,146 @@
+{
+ "solver": "PRAMANA 1.0",
+ "model": "REFPLAN_30x52",
+ "status": "ITERATION_LIMIT",
+ "engine_status": "OPTIMAL",
+ "engine": "pdhg-gpu",
+ "objective": 933793.78884328785,
+ "best_bound": 934055.87091439217,
+ "relative_gap": 0.00028066375492705615,
+ "seconds": 3.3629060000000002,
+ "certificate": {
+  "claimed_status": "OPTIMAL",
+  "certified_status": "NUMERICAL_FAILURE",
+  "accepted": false,
+  "primal_objective": 933793.78884328785,
+  "safe_dual_bound": 934055.87091439217,
+  "certified_relative_gap": 0.00028066375492705615,
+  "max_primal_violation": 0.25522032109275561,
+  "max_dual_violation": 0,
+  "max_integrality_violation": 0,
+  "cost_perturbation_backward_error": 0,
+  "checks": [
+   {
+    "check": "primal_bound_violation",
+    "verdict": "PASS",
+    "value": 1.3075339894196189e-16,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "max relative column-bound violation (unscaled)"
+   },
+   {
+    "check": "primal_row_violation",
+    "verdict": "FAIL",
+    "value": 0.25522032109275561,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "worst row LPGBAL_24"
+   },
+   {
+    "check": "safe_dual_bound_gap",
+    "verdict": "FAIL",
+    "value": 0.00028066375492705615,
+    "tolerance": 9.9999999999999995e-07,
+    "detail": "rigorous bound 934055.870914 (outward-rounded; exact for costs perturbed by <= 0.0e+00 rel.) using constraint-implied column bounds"
+   }
+  ]
+ },
+ "telemetry": {
+  "model": {
+   "rows": 23712,
+   "cols": 32656,
+   "nnz": 95229,
+   "avg_row_nnz": 4.016067813765182,
+   "max_row_nnz": 63,
+   "coefficient_range": 15456.640877875478,
+   "equality_row_fraction": 0.95833333333333337,
+   "free_column_fraction": 0,
+   "is_mip": false,
+   "is_qp": false,
+   "name": "REFPLAN_30x52",
+   "integers": 0,
+   "q_nnz": 0,
+   "sense": "max"
+  },
+  "router": {
+   "engine": "pdhg-gpu",
+   "reason": "min predicted time 36.6s (dual 187, ipm 164, pdhg-cpu 592, pdhg-gpu 8.52) [default priors]",
+   "calibrated_model": false,
+   "predicted_seconds": {
+    "dual": 186.98895622762214,
+    "ipm": 163.97453755798423,
+    "pdhg-cpu": 592.11954760483513,
+    "pdhg-gpu": 8.5153562243361041
+   },
+   "features": {
+    "rows": 23712,
+    "cols": 32656,
+    "nnz": 95229,
+    "avg_row_nnz": 4.016067813765182,
+    "max_row_nnz": 63,
+    "coefficient_range": 15456.640877875478,
+    "equality_row_fraction": 0.95833333333333337,
+    "free_column_fraction": 0,
+    "is_mip": false,
+    "is_qp": false
+   },
+   "requested": "pdhg-gpu",
+   "selected": "pdhg-gpu"
+  },
+  "gpu": {
+   "available": true,
+   "name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+   "reason": "",
+   "compute_capability": "8.9",
+   "multiprocessors": 20,
+   "memory_bytes": 6438780928,
+   "peak_bandwidth_GBs": 192.024,
+   "driver_version": 13010,
+   "nvrtc": "",
+   "ptx_from_cache": true
+  },
+  "presolve": {
+   "status": "reduced",
+   "rows_removed": 260,
+   "cols_removed": 0,
+   "nnz_removed": 260,
+   "singleton_rows": 260,
+   "forcing_rows": 0,
+   "redundant_rows": 0,
+   "empty_rows": 0,
+   "fixed_cols": 0,
+   "empty_cols": 0,
+   "dominated_cols": 0,
+   "free_col_singletons": 0,
+   "bounds_tightened": 260,
+   "coefficients_tightened": 0,
+   "passes": 2
+  },
+  "pdhg": {
+   "backend": "gpu",
+   "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+   "iterations": 13056,
+   "restarts": 11,
+   "relative_primal_residual": 9.2971041363119935e-05,
+   "relative_dual_residual": 7.805183693530763e-06,
+   "relative_gap": 5.1218129011363973e-05,
+   "primal_weight": 0.03588182349177587,
+   "spectral_norm_estimate": 1.0249678603197663,
+   "setup_seconds": 0.031139,
+   "solve_seconds": 2.8907943999999999,
+   "kernel_seconds": 2.89072314453125,
+   "transfer_seconds": 0.0070267999999999997,
+   "bytes_uploaded": 5197116,
+   "bytes_downloaded": 2092000,
+   "kernel_launches": 105531,
+   "relative_kkt": 9.2971041363119935e-05,
+   "objective": -933793.7888432875,
+   "dual_objective": -933698.13934956351
+  },
+  "timing": {
+   "presolve": 0.0133171,
+   "engine": 2.9242439,
+   "postsolve": 0.00079759999999999998,
+   "certify": 0.017967199999999999,
+   "total": 3.3629060000000002
+  }
+ }
+}

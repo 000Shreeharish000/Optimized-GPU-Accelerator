@@ -326,6 +326,7 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
     pj["dominated_cols"] = s.dominatedCols;
     pj["free_col_singletons"] = s.freeColSingletons;
     pj["bounds_tightened"] = s.boundsTightened;
+    pj["coefficients_tightened"] = s.coefficientsTightened;
     pj["passes"] = s.passes;
     tel["presolve"] = pj;
     if (ps == PresolveStatus::Reduced || ps == PresolveStatus::Empty) {
@@ -513,7 +514,9 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
       fin_.d = full.hasDual ? full.reducedCost : std::vector<double>();
       fin_.cs.clear();
       fin_.rs.clear();
-      if (!isMip && !isQp && out.status == Status::Optimal) {
+      // Raw first-order output (no basis, crossover disabled) is certified as-is.
+      const bool wantCleanup = full.hasBasis || opt.pdhgCrossover;
+      if (!isMip && !isQp && out.status == Status::Optimal && wantCleanup) {
         // Warm-started cleanup on the original model (usually 0 pivots): gives a
         // basis, duals and a certificate consistent with the ORIGINAL model.
         SimplexOptions so = simplexOptionsFrom(opt);
@@ -552,9 +555,14 @@ SolveResult solve(const Model& input, const SolverOptions& opt) {
     // A feasible point whose optimality could not be proven (e.g. a first-order
     // answer at 1e-6 that crossover did not finish): report it as approximate,
     // with the rigorous bound, rather than as a numerical failure.
+    // A first-order answer returned at the user's (looser) accuracy without crossover is
+    // an approximate, unproven result: report it as a limit status with its certified gap.
+    const bool rawFirstOrder = out.engine.rfind("pdhg", 0) == 0 && out.engine.find("crossover") == std::string::npos;
     if (!res.certificate.accepted && fin_.status == Status::Optimal && !fin_.x.empty() &&
-        res.certificate.maxPrimalViolation <= opt.certTol.primalFeas)
+        (res.certificate.maxPrimalViolation <= opt.certTol.primalFeas || rawFirstOrder))
       res.status = Status::IterationLimit;
+    // Out of time before a proof was completed: that is a time limit, not a numerical failure.
+    if (res.status == Status::NumericalFailure && dl.expired()) res.status = Status::TimeLimit;
   } else {
     res.status = fin_.status;
   }

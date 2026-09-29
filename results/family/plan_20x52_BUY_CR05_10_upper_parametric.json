@@ -1,0 +1,58 @@
+{
+ "model": "REFPLAN_20x52",
+ "complete": true,
+ "message": "14 certified solves",
+ "pivots": 28059,
+ "seconds": 9.4342103999999996,
+ "segments": [
+  {
+   "theta_lo": 0,
+   "theta_hi": 25.520684128776452,
+   "status": "OPTIMAL",
+   "objective_lo": 524329.43960877578,
+   "objective_hi": 524332.1194871919,
+   "slope": 0.10500809471248371,
+   "param_variable_value": 0,
+   "certified": true,
+   "certified_gap": 1.9094326812140394e-14,
+   "pivots": 28008
+  },
+  {
+   "theta_lo": 25.520684128776452,
+   "theta_hi": 26.314602700884272,
+   "status": "OPTIMAL",
+   "objective_lo": 524332.1194871919,
+   "objective_hi": 524332.1618906596,
+   "slope": 0.053410348602178817,
+   "param_variable_value": 25.7730820276015,
+   "certified": true,
+   "certified_gap": 1.9316253579454041e-14,
+   "pivots": 22
+  },
+  {
+   "theta_lo": 26.314602700884272,
+   "theta_hi": 36.811963486095159,
+   "status": "OPTIMAL",
+   "objective_lo": 524332.1618906596,
+   "objective_hi": 524332.44074555638,
+   "slope": 0.026564286251165692,
+   "param_variable_value": 28.562455295074166,
+   "certified": true,
+   "certified_gap": 1.9760294876786155e-14,
+   "pivots": 22
+  },
+  {
+   "theta_lo": 36.811963486095159,
+   "theta_hi": 200,
+   "status": "OPTIMAL",
+   "objective_lo": 524332.44074555638,
+   "objective_hi": 524332.4409163649,
+   "slope": 1.046697551820024e-06,
+   "param_variable_value": 36.811963486095159,
+   "certified": true,
+   "certified_gap": 1.9760294876786155e-14,
+   "pivots": 10
+  }
+ ],
+ "breakpoints": [25.520684128776452,26.314602700884272,36.811963486095159]
+}

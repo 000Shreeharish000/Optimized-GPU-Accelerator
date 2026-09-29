@@ -18,7 +18,7 @@ $PY bench/run_bench.py --set adversarial   --engines auto --reference --time 60
 $PY bench/run_bench.py --set maros         --engines auto --time 60
 $PY bench/run_bench.py --set gen           --engines dual,ipm,pdhg-cpu,pdhg-gpu --reference --time 120
 $PY bench/run_bench.py --set miplib3       --engines auto --reference --time $T_MIP
-$PY bench/run_bench.py --set miplib3       --engines auto --time $T_MIP --extra "--no-cuts" --tag nocuts
+$PY bench/run_bench.py --set miplib3       --engines auto --time $T_MIP --extra=--no-cuts --tag nocuts
 $PY bench/run_bench.py --set netlib        --engines ipm,pdhg-cpu,pdhg-gpu --time 30 --tag engines
 $PY bench/gpu_crossover.py
 $PY bench/family_experiment.py

@@ -177,7 +177,8 @@ def summarize(set_name, rows, solvers, tlimit, outdir: Path):
             ts.append(min(float(t), tlimit))
             if ref and s != ref and ok and ref in d and d[ref].get("status") == "OPTIMAL" and r.get("status") == "OPTIMAL":
                 a, b = r.get("objective"), d[ref].get("objective")
-                if a is not None and b is not None and abs(a - b) > 1e-6 * max(1, abs(b)):
+                tol = 1e-4 if r.get("nodes") not in (None, "") else 1e-6  # MIP: default relative gap
+                if a is not None and b is not None and abs(a - b) > tol * max(1, abs(b)):
                     wrong += 1
         lines.append(f"| {s} | {solved}/{len(by)} | {cert if s != 'highs' else '-'} | {sgm(ts):.3f} | {wrong if s != ref else '-'} |")
     lines += ["", "## Full per-instance table (including every failure)", ""]

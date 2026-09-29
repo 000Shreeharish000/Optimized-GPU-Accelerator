@@ -131,18 +131,8 @@ PropagationResult Propagator::propagate(std::vector<double>& lo, std::vector<dou
               next.push_back(r);
             }
           }
-          // Refresh activities of the current row for subsequent variables.
-          minFin = 0;
-          maxFin = 0;
-          minInf = maxInf = 0;
-          for (int e2 = AT_.start[i]; e2 < AT_.start[i + 1]; ++e2) {
-            int j2 = AT_.index[e2];
-            double a2 = AT_.value[e2];
-            double b1 = a2 > 0 ? lo[j2] : up[j2];
-            double b2 = a2 > 0 ? up[j2] : lo[j2];
-            if (fin(b1)) minFin += a2 * b1; else ++minInf;
-            if (fin(b2)) maxFin += a2 * b2; else ++maxInf;
-          }
+          // Activities of this row are NOT refreshed: the stale (looser) activities only
+          // make later derived bounds weaker, never invalid, and keep a pass O(row length).
         }
       }
     }

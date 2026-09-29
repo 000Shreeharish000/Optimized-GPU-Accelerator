@@ -1,0 +1,119 @@
+{
+ "gpu": {
+  "available": true,
+  "name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "reason": "",
+  "compute_capability": "8.9",
+  "multiprocessors": 20,
+  "memory_bytes": 6438780928,
+  "peak_bandwidth_GBs": 192.024,
+  "driver_version": 13010,
+  "nvrtc": "",
+  "ptx_from_cache": true
+ },
+ "cpu_threads": 16,
+ "pdhg_iteration_timing": [
+  {
+   "rows": 1000,
+   "cols": 2000,
+   "nnz": 7993,
+   "cpu": {
+    "seconds_per_iteration": 5.0250195312500001e-05,
+    "effective_GBs": 8.5936382399011197,
+    "setup_seconds": 0.0011762999999999999,
+    "total_seconds": 0.027036600000000001
+   },
+   "gpu": {
+    "seconds_per_iteration": 9.43744140625e-05,
+    "effective_GBs": 4.57573172018866,
+    "setup_seconds": 0.0028901,
+    "total_seconds": 0.051769500000000003
+   }
+  },
+  {
+   "rows": 4000,
+   "cols": 8000,
+   "nnz": 31989,
+   "cpu": {
+    "seconds_per_iteration": 0.0001401578125,
+    "effective_GBs": 12.327075952330521,
+    "setup_seconds": 0.0043290000000000004,
+    "total_seconds": 0.076558000000000001
+   },
+   "gpu": {
+    "seconds_per_iteration": 9.2719140624999998e-05,
+    "effective_GBs": 18.63408125176419,
+    "setup_seconds": 0.0063851000000000003,
+    "total_seconds": 0.054538200000000002
+   }
+  },
+  {
+   "rows": 16000,
+   "cols": 32000,
+   "nnz": 127994,
+   "cpu": {
+    "seconds_per_iteration": 0.00036670996093749998,
+    "effective_GBs": 18.848290846340053,
+    "setup_seconds": 0.020377099999999999,
+    "total_seconds": 0.2098922
+   },
+   "gpu": {
+    "seconds_per_iteration": 0.0001117904296875,
+    "effective_GBs": 61.828691591234289,
+    "setup_seconds": 0.022823400000000001,
+    "total_seconds": 0.082432800000000001
+   }
+  },
+  {
+   "rows": 64000,
+   "cols": 128000,
+   "nnz": 511988,
+   "cpu": {
+    "seconds_per_iteration": 0.000972064453125,
+    "effective_GBs": 28.44226214745116,
+    "setup_seconds": 0.087387999999999993,
+    "total_seconds": 0.59060270000000004
+   },
+   "gpu": {
+    "seconds_per_iteration": 0.00017652929687500001,
+    "effective_GBs": 156.61826387705651,
+    "setup_seconds": 0.089297600000000005,
+    "total_seconds": 0.18678639999999999
+   }
+  },
+  {
+   "rows": 256000,
+   "cols": 512000,
+   "nnz": 2047987,
+   "cpu": {
+    "seconds_per_iteration": 0.0053486875000000001,
+    "effective_GBs": 20.676416036644504,
+    "setup_seconds": 1.0178663999999999,
+    "total_seconds": 3.7795543999999999
+   },
+   "gpu": {
+    "seconds_per_iteration": 0.0011195546875000001,
+    "effective_GBs": 98.781854280789645,
+    "setup_seconds": 0.93088009999999999,
+    "total_seconds": 1.5221323
+   }
+  },
+  {
+   "rows": 1000000,
+   "cols": 2000000,
+   "nnz": 7999987,
+   "cpu": {
+    "seconds_per_iteration": 0.025894223437499999,
+    "effective_GBs": 16.683245552534249,
+    "setup_seconds": 6.7627002000000003,
+    "total_seconds": 20.133183200000001
+   },
+   "gpu": {
+    "seconds_per_iteration": 0.010443778710937501,
+    "effective_GBs": 41.36430883465367,
+    "setup_seconds": 8.2654508999999994,
+    "total_seconds": 13.6737725
+   }
+  }
+ ]
+}

@@ -1,0 +1,49 @@
+{
+ "cases": 32,
+ "breakpoints": 3,
+ "breakpoints_missed_by_sampling": 0,
+ "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+ "thetas": [0,6.4516129032258061,12.903225806451612,19.35483870967742,25.806451612903224,32.258064516129032,38.70967741935484,45.161290322580648,51.612903225806448,58.064516129032256,64.516129032258064,70.967741935483872,77.41935483870968,83.870967741935488,90.322580645161295,96.774193548387103,103.2258064516129,109.6774193548387,116.12903225806451,122.58064516129032,129.03225806451613,135.48387096774192,141.93548387096774,148.38709677419354,154.83870967741936,161.29032258064515,167.74193548387098,174.19354838709677,180.64516129032259,187.09677419354838,193.54838709677421,200],
+ "strategies": [
+  {
+   "strategy": "parametric sweep (exact, certified)",
+   "seconds": 8.8246260999999997,
+   "solved": 4,
+   "certified": 4,
+   "max_relative_error": 0,
+   "note": "4 segments, 28059 pivots; certificates per segment"
+  },
+  {
+   "strategy": "cold dual simplex x K",
+   "seconds": 272.9822911,
+   "solved": 32,
+   "certified": 32,
+   "max_relative_error": 2.6087569511685699e-09,
+   "note": "independent solves (incl. certification)"
+  },
+  {
+   "strategy": "warm-started simplex chain",
+   "seconds": 9.4339867000000002,
+   "solved": 32,
+   "certified": 32,
+   "max_relative_error": 2.6087573952209603e-09,
+   "note": "28026 pivots total"
+  },
+  {
+   "strategy": "batched PDHG (CPU) 1e-6 + safe bounds",
+   "seconds": 803.30874310000002,
+   "solved": 0,
+   "certified": 0,
+   "max_relative_error": 0,
+   "note": "16 threads, 200000 iterations, kernel 801.504s, transfer 0.104s, setup 1.737s; certified = safe bound within 1e-4"
+  },
+  {
+   "strategy": "batched PDHG (GPU) 1e-6 + safe bounds",
+   "seconds": 167.07124709999999,
+   "solved": 0,
+   "certified": 0,
+   "max_relative_error": 0,
+   "note": "NVIDIA GeForce RTX 4050 Laptop GPU, 200000 iterations, kernel 166.876s, transfer 0.158s, setup 0.097s; certified = safe bound within 1e-4"
+  }
+ ]
+}

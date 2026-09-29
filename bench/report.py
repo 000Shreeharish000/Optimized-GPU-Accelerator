@@ -33,12 +33,20 @@ def sgm(ts, shift=10.0):
     return math.exp(sum(math.log(t + shift) for t in ts) / len(ts)) - shift if ts else float("nan")
 
 
+def is_mip(set_name, inst, solver):
+    f = RES / set_name / "json" / f"{inst}.{solver}.json"
+    try:
+        return json.loads(f.read_text())["telemetry"]["model"].get("integers", 0) > 0
+    except Exception:  # noqa: BLE001
+        return set_name.startswith("miplib")
+
+
 def table(set_name, solvers, limit):
     rs = rows(set_name)
     by = {}
     for r in rs:
         by.setdefault(r["instance"], {})[r["solver"]] = r
-    out = ["| solver | proven | certified | SGM s (shift 10) | disagreements with HiGHS |", "|---|---|---|---|---|"]
+    out = ["| solver | proven | certified | SGM s (shift 10) | disagreements with HiGHS (1e-6 LP, 1e-4 MIP gap) |", "|---|---|---|---|---|"]
     for s in solvers:
         solved = cert = dis = 0
         ts = []
@@ -53,7 +61,8 @@ def table(set_name, solvers, limit):
             h = d.get("highs")
             if s != "highs" and h and ok and h["status"] == "OPTIMAL" and r["status"] == "OPTIMAL":
                 a, b = num(r["objective"]), num(h["objective"])
-                if a is not None and b is not None and abs(a - b) > 1e-6 * max(1, abs(b)):
+                tol = 1e-4 if is_mip(set_name, inst, s) else 1e-6  # both solvers' default MIP gap
+                if a is not None and b is not None and abs(a - b) > tol * max(1, abs(b)):
                     dis += 1
         if ts:
             out.append(f"| {s} | {solved}/{len(ts)} | {cert if s != 'highs' else '-'} | {sgm(ts):.3f} | "
@@ -170,23 +179,57 @@ def main():
         p = RES / extra / "summary.md"
         if p.exists():
             md += [p.read_text(), ""]
+    cal = RES / "gpu" / "calibrate.json"
+    if cal.exists():
+        pts = json.loads(cal.read_text()).get("pdhg_iteration_timing", [])
+        md += ["## PDHG per-iteration cost: CPU (all threads) vs GPU (own kernels)", "",
+               "`pramana calibrate`: one PDHG iteration (2 SpMV + fused vector updates) on synthetic LPs.", "",
+               "| nnz | CPU ms/iter | GPU ms/iter | GPU speedup |", "|---|---|---|---|"]
+        for p in pts:
+            c, gg = p["cpu"]["seconds_per_iteration"], p.get("gpu", {}).get("seconds_per_iteration")
+            md.append(f"| {p['nnz']:,} | {c * 1e3:.3f} | {'' if gg is None else f'{gg * 1e3:.3f}'} | "
+                      f"{'' if not gg else f'{c / gg:.2f}x'} |")
+        md.append("")
     gp = RES / "gpu" / "planning_engines.csv"
     if gp.exists():
-        md += ["## CPU vs GPU on the refinery planning family (certified end-to-end seconds)", "",
-               "| model | nnz | dual | ipm | pdhg-cpu | pdhg-gpu | raw pdhg-gpu 1e-4 (uncertified) |", "|---|---|---|---|---|---|---|"]
+        md += ["## CPU vs GPU on the refinery planning family (end-to-end seconds, 300 s limit)", "",
+               "Columns dual..pdhg-gpu: exactly certified optimum (PDHG followed by crossover). Raw columns: first-order",
+               "answer at 1e-4 relative KKT *without* crossover. Its primal point is NOT feasible to 1e-6 (so it is never",
+               "reported as OPTIMAL), but its duals give a rigorous Neumaier-Shcherbina bound; brackets show that bound's",
+               "relative distance from the true optimum (reference optimum: any certified run of the same model, else HiGHS).", "",
+               "| model | nnz | dual | ipm | pdhg-cpu | pdhg-gpu | raw pdhg-cpu 1e-4 [bound err] | raw pdhg-gpu 1e-4 [bound err] | HiGHS |",
+               "|---|---|---|---|---|---|---|---|---|"]
+        highs = {r["instance"]: r for r in rows("gen") if r["solver"] == "highs"}
         with open(gp) as fh:
             g = list(csv.DictReader(fh))
         models = sorted({r["model"] for r in g}, key=lambda m: int(next((r["nnz"] for r in g if r["model"] == m and r["nnz"]), 0) or 0))
         for m in models:
+            h = highs.get(m, {})
+            opt = next((num(r["objective"]) for r in g if r["model"] == m and r.get("status") == "OPTIMAL"), None)
+            if opt is None and h.get("status") == "OPTIMAL":
+                opt = num(h.get("objective"))
             cell = {}
             nnz = ""
             for r in g:
                 if r["model"] == m:
                     nnz = r.get("nnz") or nnz
                     s = r.get("status", "")
-                    cell[r["config"]] = f"{num(r['seconds']) or 0:.2f}" + ("" if s == "OPTIMAL" else f" ({s})")
+                    if "raw" in r["config"]:
+                        bound = None
+                        try:
+                            j = json.loads((RES / "gpu" / f"{m}.{r['config']}.json").read_text())
+                            bound = num(j["certificate"]["safe_dual_bound"])
+                        except Exception:  # noqa: BLE001
+                            pass
+                        err = abs(bound - opt) / max(1.0, abs(opt)) if (bound is not None and opt is not None) else None
+                        cell[r["config"]] = f"{num(r['seconds']) or 0:.2f}" + (f" [{err:.1e}]" if err is not None else " [-]")
+                    else:
+                        cell[r["config"]] = f"{num(r['seconds']) or 0:.2f}" + ("" if s == "OPTIMAL" else f" ({s})")
+            hc = f"{num(h.get('time')) or 0:.2f}" + ("" if h.get("status") == "OPTIMAL" else f" ({h.get('status')})") if h else ""
             md.append(f"| {m} | {nnz} | {cell.get('dual', '')} | {cell.get('ipm', '')} | {cell.get('pdhg-cpu', '')} | "
-                      f"{cell.get('pdhg-gpu', '')} | {cell.get('pdhg-gpu_raw1e-4', '')} |")
+                      f"{cell.get('pdhg-gpu', '')} | {cell.get('pdhg-cpu_raw1e-4', '')} | {cell.get('pdhg-gpu_raw1e-4', '')} | {hc} |")
+        md += ["", "Note: the HiGHS column comes from the `gen` benchmark run (120 s limit); timings from different",
+               "runs on this laptop vary by up to ~2x (thermal/power state), so compare within a column group."]
         md += ["", "![iteration crossover](figures/gpu_iteration_crossover.png)", "",
                "![planning engines](figures/gpu_planning_engines.png)", ""]
     (ROOT / "docs" / "BENCHMARKS.md").write_text("\n".join(md) + "\n")

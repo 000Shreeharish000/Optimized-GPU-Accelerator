@@ -26,11 +26,21 @@ never asks to be trusted**:
 |---|---|---|
 | Netlib LP, all 91 feasible | **91/91 optimal, all certified**, 0 disagreements | 91/91 |
 | Netlib infeasible, all 29 | **29/29 infeasible, all with verified Farkas proofs** | 28/29 |
-| Badly scaled Netlib (10^±6 rescaling, known true optimum) | **6/8 true optimum + certificate, 0 wrong answers** (2 honestly unproven) | 0/8 correct: 4 wrong optima, 3 false INFEASIBLE, 1 false UNBOUNDED (default tolerances) |
-| MIPLIB 3 pre-registered subset | see BENCHMARKS.md | see BENCHMARKS.md |
-| Maros–Mészáros convex QP (124) | see BENCHMARKS.md (unsolved listed, none wrong) | (no QP in scipy) |
+| Badly scaled Netlib (10^±6 rescaling, known true optimum) | **7/8 true optimum + certificate, 0 wrong answers** (1 honestly unproven) | 0/8 correct: 4 wrong optima, 3 false INFEASIBLE, 1 false UNBOUNDED (default tolerances) |
+| Adversarial suite (17: Klee–Minty, degenerate, near-singular, thin-infeasible, unbounded, scaled) | 16/17 proven + certified, **0 wrong** | 17/17 answered, **8 wrong** (all on the scaled models) |
+| MIPLIB 3 pre-registered subset (42, 60 s) | 29/42 optimal, all certified, 0 disagreements (SGM 14.1 s) | 36/42 (SGM 5.9 s) |
+| Maros–Mészáros convex QP (124, 60 s) | 105/124 optimal + certified, 0 wrong (19 unsolved, listed) | (no QP in scipy) |
 | Unit commitment MILP, cuts on vs off | 0.09 s (1 node) vs 29.9 s (20,005 nodes) | |
-| Crude valuation (plan 10x12, availability 0–120) | exact curve, 18 breakpoints, 0.16 s, all segments certified | sampled 32 cases miss 7 segments |
+| PDHG iteration, GPU vs 16-thread CPU (own kernels, RTX 4050 Laptop) | 0.5× at 8k nnz (GPU loses), 3.3× at 128k, **5.5× at 512k**, 4.8× at 2M | |
+| Refinery planning LP, 2.5·10⁵ nnz, certified optimum via PDHG + crossover | GPU 260 s vs CPU PDHG > 300 s; dual simplex 254 s | 26.6 s |
+| Refinery planning LP, 5.6·10⁵ nnz, raw PDHG 1e-4 | GPU **11 s** vs CPU 27 s, rigorous bound within 1.2e-4 (no exact vertex in 300 s) | exact optimum in 91.8 s |
+| Crude valuation family (plan 10x12, availability 0–120, 64 cases) | exact certified curve (19 segments) 0.16 s; warm simplex chain 0.19 s; batched GPU PDHG 4.8 s; cold solves 9.9 s | |
+| Engine router (99 LPs, 5-fold held-out) | regret 1.06× vs oracle, picks the fastest engine 89% of the time (never picks GPU below the crossover) | |
+
+**Honest reading.** PRAMANA is correct everywhere it claims anything, and more robust than HiGHS on
+badly scaled models. HiGHS is faster on large LPs and hard MIPs, often by an order of magnitude. The GPU
+wins per PDHG iteration from about 3·10⁴ nnz, but for refinery-sized LPs at 1e-9 accuracy, warm-started
+simplex (or HiGHS) still wins end to end; that is exactly what the router learns.
 
 Correctness is established independently of HiGHS: where HiGHS and PRAMANA disagree (badly scaled
 suite), the ground truth is known by construction and both checkers confirm PRAMANA's answers.
@@ -42,9 +52,12 @@ build.bat                                   :: CMake + Ninja + MSVC -> build\pra
 python bench\fetch_data.py                  :: Netlib, Netlib-infeasible, MIPLIB 3, Maros-Meszaros
 python gen\refinery.py suite --out data\gen :: refinery / scheduling / UC / dispatch models
 python gen\adversarial.py                   :: degenerate, ill-conditioned, infeasible, unbounded suite
-build\pramana_tests.exe                     :: 22 unit-test groups (800+ checks)
+build\pramana_tests.exe                     :: 23 unit-test groups (800+ checks)
 python -m pytest tests\python -q            :: end-to-end tests (bindings, exact verifier, generators)
 ```
+
+`python` is any Python ≥ 3.10 with `numpy`, `scipy`, `matplotlib` and `pytest`. The solver itself needs no Python;
+scipy is only used as the HiGHS *reference* in `bench/`.
 
 Linux/macOS: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build` (GPU via
 `libcuda.so` + `libnvrtc.so` if present, otherwise CPU only).

@@ -204,6 +204,37 @@ bool Presolver::pass(bool mip) {
   }
   if (infeasible_) return false;
 
+  // ---- MIP coefficient tightening (Savelsbergh 1994) ----
+  // Row  sum a_j x_j <= b  (one finite side), binary x_j with a_j > 0, max activity M:
+  // if d = b - (M - a_j) > 0 the row is slack by d whenever x_j = 0, so a_j -= d and
+  // b -= d keep every integer point and tighten the LP relaxation. >= rows symmetric.
+  if (mip) {
+    for (int i = 0; i < m && !infeasible_; ++i) {
+      if (!rowActive_[i] || fin(rl_[i]) == fin(ru_[i])) continue;
+      const double sg = fin(ru_[i]) ? 1.0 : -1.0;  // work on  sg * a^T x <= sg * rhs
+      double b = sg > 0 ? ru_[i] : -rl_[i];
+      double M = sg > 0 ? activityMax(i) : -activityMin(i);
+      if (!fin(M)) continue;
+      for (int e = AT_.start[i]; e < AT_.start[i + 1]; ++e) {
+        int j = AT_.index[e];
+        if (!colActive_[j] || orig_.colType[j] != VarType::Integer || lo_[j] != 0.0 || up_[j] != 1.0) continue;
+        double a = sg * AT_.value[e];
+        if (a <= 0) continue;
+        double d = b - (M - a);
+        if (d <= 1e-9 * (1 + std::fabs(b)) || d >= a - 1e-12) continue;
+        double na = a - d;
+        AT_.value[e] = sg * na;
+        for (int k = orig_.A.start[j]; k < orig_.A.start[j + 1]; ++k)
+          if (orig_.A.index[k] == i) orig_.A.value[k] = sg * na;
+        b -= d;
+        M -= d;
+        if (sg > 0) ru_[i] = b; else rl_[i] = -b;
+        stats_.coefficientsTightened++;
+        changed = true;
+      }
+    }
+  }
+
   // ---- Columns ----
   for (int j = 0; j < n && !infeasible_ && !unbounded_; ++j) {
     if (!colActive_[j]) continue;
@@ -399,13 +430,14 @@ PresolveStatus Presolver::run(const Model& model, bool mip) {
   }
   std::vector<int> ri, ci;
   std::vector<double> v;
+  // orig_.A carries any coefficient tightening applied during presolve (MIP).
   for (int j : colOrig_)
-    for (int k = model.A.start[j]; k < model.A.start[j + 1]; ++k) {
-      int i = model.A.index[k];
+    for (int k = orig_.A.start[j]; k < orig_.A.start[j + 1]; ++k) {
+      int i = orig_.A.index[k];
       if (!rowActive_[i]) continue;
       ri.push_back(rowNew[i]);
       ci.push_back(colNew[j]);
-      v.push_back(model.A.value[k]);
+      v.push_back(orig_.A.value[k]);
     }
   reduced_.A = SparseMatrix::fromTriplets(static_cast<int>(rowOrig_.size()), static_cast<int>(colOrig_.size()), ri, ci, v);
   reduced_.Q = SparseMatrix(0, 0);
