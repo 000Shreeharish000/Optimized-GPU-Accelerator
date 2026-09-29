@@ -88,6 +88,49 @@ pip install numpy scipy matplotlib pytest
 
 ## 3. Build and run in 5 minutes
 
+### One command: the PRAMANA console
+
+```bat
+start.bat            :: Windows      (Linux/macOS: ./start.sh)
+```
+
+`start.bat` does everything in one go:
+1. finds Python;
+2. builds the solver (incrementally; a no-op when nothing has changed);
+3. downloads or generates the benchmark and industrial models if they are missing;
+4. opens the **PRAMANA console**, an interactive terminal dashboard (no browser, no extra packages).
+
+```
+╭─── PRAMANA v1.0 ────────────────────────────────────────────────────────────────────────────────╮
+│               Welcome back, <user>!                        │ Getting started                    │
+│                          ▁▁▁▁▁◆ ↗                          │ Type a model name, e.g. afiro      │
+│         ╱░░░░░░╲    █▀█ █▀█ ▄▀█ █▀▄▀█ ▄▀█ █▄ █ ▄▀█         │ / for commands · Tab completes     │
+│        ▕░░░░░░░░▏   █▀▀ █▀▄ █▀█ █ ▀ █ █▀█ █ ▀█ █▀█         │ ────────────────────────────────── │
+│          ╲░░░░░░╱    certified optimization engine         │ Recent activity                    │
+│   LP · MILP · QP  ·  16 threads  ·  RTX 4050 Laptop GPU    │ p0201        OPTIMAL       2.59 s  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+> Try "/analyze pilot87"
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ PRAMANA  GPU Acceltor  engine auto · 300s              ● afiro OPTIMAL <1 ms  GPU RTX 4050 · 16 thr
+```
+
+| type | what you get |
+|---|---|
+| `afiro`, `p0201`, `pilot87`, … (any model name or path) | solve + certify: status, objective, certified bound, engine and router reasoning, time breakdown, every certificate check, automatic **analysis** of what happened |
+| `/analyze <model>` | structure and numerics **without solving**: row/bound types, coefficient ranges in decades, big-M detection, predicted time per engine |
+| `/debug [run#]` | **numerical diagnostics** of a run: degeneracy, scaling, refactorizations, perturbations, stall recoveries, where simplex time went, cuts and root-gap closure, gap over time, PDHG kernel/transfer time, router prediction vs measured |
+| `/verify [exact]` | independent re-check of the last result: C++ interval certifier + exact-rational verifier (optionally exact optimal basis) |
+| `/compare <model>` | every LP engine (dual simplex, IPM, PDHG CPU, PDHG GPU) on the same model, certified times side by side |
+| `/param <model> <col> <kind> <from> <to>` | certified parametric analysis with a value-curve chart and every breakpoint |
+| `/bench` · `/gpu` · `/models` · `/history` · `/set` · `/check` · `/help` | benchmark results vs HiGHS, GPU crossover, model browser, run history, session settings, full self-check |
+
+Keys: `Tab` completes commands and model names, `↑`/`↓` browse history or suggestions, `Esc` clears,
+`Ctrl+C` cancels a running solve (twice on an empty line exits). Commands can also be piped in for
+scripted use: `echo afiro | start.bat`.
+
+### Manual build and first solve
+
 ```bat
 build.bat                                   :: -> build\pramana.exe, build\libpramana.dll, build\pramana_tests.exe
 build\pramana.exe info                      :: threads, GPU detection
@@ -132,7 +175,7 @@ only if all pass. On the reference machine: **21 passed, 0 failed, about 1 minut
 | # | check | what it proves |
 |---|---|---|
 | 1 | C++ unit tests (24 groups, 32k assertions) | LU, LDLᵀ, interval arithmetic, certifier rejects false claims, simplex/IPM/PDHG on known optima, CPU = GPU, presolve round trip, MIP vs brute force, MIPLIB optima, parametric vs re-solves, determinism |
-| 2 | Python end-to-end tests | bindings, exact verifier, generators |
+| 2 | Python end-to-end tests | bindings, exact verifier, generators, terminal console |
 | 3 | from-scratch dependency audit | the binaries import only OS/C++ runtime DLLs, and no solver headers are included ([docs/FROM_SCRATCH_AUDIT.md](docs/FROM_SCRATCH_AUDIT.md)) |
 | 4 | 14 certified solves | LP (AFIRO, ill-conditioned PILOT87, degenerate DEGEN3, Klee–Minty, badly scaled), infeasible (Farkas), unbounded (ray), MILP (MIPLIB P0033/P0282, unit commitment, crude unloading), QP (HS21, economic dispatch), refinery planning |
 | 5 | independent re-verification | C++ `verify` of a saved result, exact-rational verification including the **exact optimal basis**, exact Farkas check |
@@ -180,6 +223,9 @@ build\pramana.exe model.mps --json result.json --vectors
 build\pramana.exe parametric data\gen\plan_10x12.mps --col BUY_CR03_0 --kind cost  --from -95 --to -35 --json param.json
 build\pramana.exe family     data\gen\plan_10x12.mps --col BUY_CR03_0 --kind upper --from 0 --to 120 --cases 64
 
+:: structure / numerics report and engine prediction, without solving
+build\pramana.exe analyze data\netlib\pilot87.mps.gz
+
 :: measure where the GPU starts to win on this machine
 build\pramana.exe calibrate
 
@@ -191,7 +237,7 @@ Exit codes: `0` proven (OPTIMAL / INFEASIBLE / UNBOUNDED, certificate accepted),
 
 ### Viewer
 
-Open `web\index.html` in a browser and drop a `--json` result or a parametric JSON onto it. It shows
+In the terminal, the PRAMANA console (`start.bat`, section 3) shows everything. For a browser view, open `web\index.html` in a browser and drop a `--json` result or a parametric JSON onto it. It shows
 the status, the certificate checks, telemetry and the value curve.
 
 ### Python
@@ -268,6 +314,7 @@ The full mapping, clause by clause, is in [docs/PS_TRACEABILITY.md](docs/PS_TRAC
 ## 8. Repository layout
 
 ```
+start.bat  start.sh             one command: build + data + PRAMANA console
 build.bat  check.bat  demo.bat     build / self-check / guided demo (Windows)
 CMakeLists.txt                     targets: pramana_core (static), libpramana (DLL), pramana (CLI), pramana_tests
 include/pramana/pramana.h          C API
@@ -285,7 +332,7 @@ src/
   parametric/  certified parametric analysis, case-family strategies
   api/  cli/   solve() pipeline, C API, command line
   util/        JSON, logging, thread pool, timers
-python/pramana/                    Python bindings + independent exact-rational verifier
+python/pramana/                    Python bindings, independent exact-rational verifier, terminal console (tui.py)
 gen/                               refinery / scheduling / UC / dispatch / adversarial model generators
 bench/                             data fetch, benchmark harness vs HiGHS, GPU + family experiments, report, audit
 tests/                             C++ unit tests (own framework) + pytest end-to-end tests + small models

@@ -4,8 +4,11 @@
 //   pramana verify <model> <result.json>               re-certify a result file
 //   pramana parametric <model> --col NAME|--row NAME --kind cost|rhs|lower|upper --from A --to B
 //   pramana family <model> --col NAME --kind cost --from A --to B --cases K   (batched GPU vs warm simplex)
+//   pramana analyze <model>                            structure report + router prediction (no solve)
 //   pramana info                                       build, dependency and GPU report
 //   pramana calibrate [--out router_model.json]        SpMV bandwidth micro-benchmark
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -17,6 +20,7 @@
 #include "cert/certifier.h"
 #include "io/mps.h"
 #include "parametric/parametric.h"
+#include "router/router.h"
 #include "pdhg/pdhg.h"
 #include "util/json.h"
 #include "util/log.h"
@@ -179,6 +183,119 @@ int cmdVerify(const Args& a) {
   return c.accepted ? 0 : 4;
 }
 
+// Structure / numerics report of a model without solving it (used by the terminal UI).
+int cmdAnalyze(const Args& a) {
+  if (a.pos.empty()) {
+    usage();
+    return 1;
+  }
+  Model model = loadModel(a.pos[0]);
+  const int m = model.numRows(), n = model.numCols();
+  auto fin = [](double v) { return std::isfinite(v); };
+  Json j = Json::object();
+  j["name"] = model.name;
+  j["sense"] = model.sense == ObjSense::Maximize ? "max" : "min";
+  j["rows"] = m;
+  j["cols"] = n;
+  j["nnz"] = model.A.nnz();
+  j["integers"] = model.numIntegers();
+  j["q_nnz"] = model.Q.nnz();
+  j["class"] = model.Q.nnz() > 0 ? (model.numIntegers() > 0 ? "MIQP" : "QP") : (model.numIntegers() > 0 ? "MILP" : "LP");
+  int binaries = 0;
+  for (int k = 0; k < n; ++k)
+    if (model.colType[k] == VarType::Integer && model.colLower[k] == 0 && model.colUpper[k] == 1) ++binaries;
+  j["binaries"] = binaries;
+  int eq = 0, le = 0, ge = 0, rng = 0, freeRows = 0;
+  for (int i = 0; i < m; ++i) {
+    bool l = fin(model.rowLower[i]), u = fin(model.rowUpper[i]);
+    if (l && u) (model.rowLower[i] == model.rowUpper[i] ? eq : rng)++;
+    else if (u) ++le;
+    else if (l) ++ge;
+    else ++freeRows;
+  }
+  Json rt = Json::object();
+  rt["equality"] = eq; rt["less_equal"] = le; rt["greater_equal"] = ge; rt["range"] = rng; rt["free"] = freeRows;
+  j["row_types"] = rt;
+  int fr = 0, lo = 0, up = 0, box = 0, fx = 0;
+  for (int k = 0; k < n; ++k) {
+    bool l = fin(model.colLower[k]), u = fin(model.colUpper[k]);
+    if (l && u) (model.colLower[k] == model.colUpper[k] ? fx : box)++;
+    else if (l) ++lo;
+    else if (u) ++up;
+    else ++fr;
+  }
+  Json cb = Json::object();
+  cb["free"] = fr; cb["lower_only"] = lo; cb["upper_only"] = up; cb["boxed"] = box; cb["fixed"] = fx;
+  j["col_bounds"] = cb;
+  double amin = 1e300, amax = 0;
+  std::vector<int> rowCount(m, 0);
+  int emptyCols = 0, singletonCols = 0, maxCol = 0;
+  for (int k = 0; k < n; ++k) {
+    int c = 0;
+    for (int e = model.A.start[k]; e < model.A.start[k + 1]; ++e) {
+      double v = std::fabs(model.A.value[e]);
+      if (v == 0) continue;
+      amin = std::min(amin, v);
+      amax = std::max(amax, v);
+      ++rowCount[model.A.index[e]];
+      ++c;
+    }
+    emptyCols += c == 0;
+    singletonCols += c == 1;
+    maxCol = std::max(maxCol, c);
+  }
+  int emptyRows = 0, singletonRows = 0, maxRow = 0;
+  for (int c : rowCount) {
+    emptyRows += c == 0;
+    singletonRows += c == 1;
+    maxRow = std::max(maxRow, c);
+  }
+  auto range = [&](const std::vector<double>& v) {
+    double lo2 = 1e300, hi2 = 0;
+    for (double x : v)
+      if (fin(x) && x != 0) {
+        lo2 = std::min(lo2, std::fabs(x));
+        hi2 = std::max(hi2, std::fabs(x));
+      }
+    Json r = Json::object();
+    r["min_abs"] = hi2 > 0 ? lo2 : 0.0;
+    r["max_abs"] = hi2;
+    return r;
+  };
+  Json num = Json::object();
+  num["matrix_min_abs"] = amax > 0 ? amin : 0.0;
+  num["matrix_max_abs"] = amax;
+  num["matrix_range"] = amax > 0 ? amax / amin : 1.0;
+  num["cost"] = range(model.colCost);
+  std::vector<double> rhs(model.rowLower);
+  rhs.insert(rhs.end(), model.rowUpper.begin(), model.rowUpper.end());
+  num["rhs"] = range(rhs);
+  std::vector<double> bnds(model.colLower);
+  bnds.insert(bnds.end(), model.colUpper.begin(), model.colUpper.end());
+  num["bounds"] = range(bnds);
+  j["numerics"] = num;
+  Json st = Json::object();
+  st["density"] = (m > 0 && n > 0) ? static_cast<double>(model.A.nnz()) / (static_cast<double>(m) * n) : 0.0;
+  st["max_row_nnz"] = maxRow;
+  st["max_col_nnz"] = maxCol;
+  st["empty_rows"] = emptyRows;
+  st["empty_cols"] = emptyCols;
+  st["singleton_rows"] = singletonRows;
+  st["singleton_cols"] = singletonCols;
+  j["structure"] = st;
+  Router router;
+  if (a.has("--router-model")) router.load(a.get("--router-model"));
+  const bool lp = model.numIntegers() == 0 && model.Q.nnz() == 0;
+  const bool gpu = lp && !a.has("--no-gpu") && gpuAvailable();
+  RouterDecision d = router.decide(model.toMinimization(), gpu, 1e-7);
+  Json r = d.toJson();
+  r["gpu_available"] = gpu;
+  if (!lp) r["engine"] = model.Q.nnz() > 0 ? "ipm-qp" : "bnb";
+  j["router"] = r;
+  std::printf("%s\n", j.dump(1).c_str());
+  return 0;
+}
+
 int cmdInfo() {
   std::printf("PRAMANA 1.0\n");
   std::printf("  solver core      : own code (C++20), no solver libraries linked\n");
@@ -258,7 +375,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (cmd == "info") return cmdInfo();
-    if (cmd == "verify" || cmd == "parametric" || cmd == "family" || cmd == "calibrate" || cmd == "solve") {
+    if (cmd == "verify" || cmd == "analyze" || cmd == "parametric" || cmd == "family" || cmd == "calibrate" || cmd == "solve") {
       a = parse(argc, argv, 2);
     } else {
       a = parse(argc, argv, 1);
@@ -266,6 +383,7 @@ int main(int argc, char** argv) {
     }
     Log::setLevel(a.has("--quiet") ? LogLevel::Error : static_cast<LogLevel>(std::min(4.0, 1.0 + a.num("--log", 1))));
     if (cmd == "verify") rc = cmdVerify(a);
+    else if (cmd == "analyze") rc = cmdAnalyze(a);
     else if (cmd == "parametric") rc = cmdParametric(a, false);
     else if (cmd == "family") rc = cmdParametric(a, true);
     else if (cmd == "calibrate") rc = cmdCalibrate(a);

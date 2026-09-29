@@ -114,3 +114,17 @@ def test_verify_command_roundtrip(tmp_path):
     cli(ROOT / "tests/data/tiny_max.mps", "--json", out, "--vectors", "--log", "0")
     p = cli("verify", ROOT / "tests/data/tiny_max.mps", out)
     assert p.returncode == 0 and "ACCEPTED" in p.stdout
+
+
+def test_terminal_console_scripted():
+    """The terminal console (python -m pramana.tui) solves, analyses, debugs and verifies from scripted input."""
+    env = dict(os.environ, PYTHONPATH=str(ROOT / "python"), NO_COLOR="1", COLUMNS="110")
+    script = "afiro\n/debug\n/verify\n/analyze p0033\n/exit\n"
+    p = subprocess.run([sys.executable, "-m", "pramana.tui"], input=script, capture_output=True, text=True,
+                       encoding="utf-8", env=env, cwd=str(ROOT), timeout=300)
+    assert p.returncode == 0, p.stderr
+    o = p.stdout
+    assert "PRAMANA v" in o and "OPTIMAL" in o and "certified" in o
+    assert "Debug" in o and "Simplex" in o
+    assert "✓ accepted" in o and "✓ verified" in o
+    assert "Analysis" in o and "MILP" in o
