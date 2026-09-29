@@ -38,7 +38,7 @@ struct SolverOptions {
   bool heuristics = true;
   std::string branching = "reliability";  // reliability | pseudocost | mostfrac | strong
   std::string nodeSelection = "bestbound-plunge";
-  int mipThreads = 0;            // parallel node workers (deterministic epochs)
+  int mipThreads = 0;            // >1: concurrent diversified B&C racing (first proof wins)
   // GPU
   bool allowGpu = true;
   std::string routerModelPath;   // optional calibrated router coefficients (JSON)
