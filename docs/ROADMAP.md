@@ -19,6 +19,13 @@
   a wrong "certified" optimum on p2756 that only the reference comparison exposed. It is fixed and
   covered by unit tests; the planned remedy is VIPR-style tree certificates that re-derive every cut and
   reduction.
+- **Weak big-M relaxations.** Presolve now shrinks big-M coefficients to implied bounds
+  (Savelsbergh tightening for both coefficient signs). On the crude-unloading big-M model this lifts
+  the root bound from 52 to 96 and finds the true optimum 109.49, but the final 6.9% gap is not closed
+  in 60 s (HiGHS: 0.17 s). On MIPLIB it newly solves gesa2, gesa2_o and bell5. dcmulti and qnet1 now
+  need more than 30 s: their bound reaches the optimum, but the heuristics miss the optimal incumbent
+  (`results/mip_regression_current_binary.md`). Next: RINS / local branching in the tree, implied-bound
+  cuts.
 - **Largest planning LP (plan_60x156, 5.6·10⁵ nnz).** No PRAMANA engine proves optimality within
   300 s in the final run (HiGHS: 92 s). Raw GPU PDHG gives a rigorous bound within ~1e-4 in 11 s, but
   the crossover to an exact vertex does not finish in time. Next step: a PDHG-to-simplex handoff that

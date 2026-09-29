@@ -151,6 +151,9 @@ PRAMANA_API int pramana_write_mps(pramana_model* m, const char* path) {
   }
 }
 
+}  // extern "C"
+
+// C++ helpers (C++ return types / may throw): kept outside the extern "C" block.
 static SolverOptions optionsFromJson(const char* text) {
   SolverOptions o;
   o.logLevel = 0;
@@ -178,6 +181,10 @@ static SolverOptions optionsFromJson(const char* text) {
   if (j.has("router_model")) o.routerModelPath = j.at("router_model").str();
   return o;
 }
+
+static ParametricSpec specFromJson(pramana_model* m, const char* text);
+
+extern "C" {
 
 PRAMANA_API pramana_result* pramana_solve(pramana_model* m, const char* options_json) {
   try {
@@ -222,6 +229,8 @@ PRAMANA_API const char* pramana_result_json(pramana_result* r, int include_vecto
 }
 PRAMANA_API void pramana_result_free(pramana_result* r) { delete r; }
 
+}  // extern "C"
+
 static ParametricSpec specFromJson(pramana_model* m, const char* text) {
   Json j = Json::parse(text ? text : "{}");
   ParametricSpec s;
@@ -241,6 +250,8 @@ static ParametricSpec specFromJson(pramana_model* m, const char* text) {
   if (s.index < 0) throw PramanaError("parametric: unknown column/row");
   return s;
 }
+
+extern "C" {
 
 PRAMANA_API char* pramana_parametric(pramana_model* m, const char* spec_json) {
   try {

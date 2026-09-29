@@ -19,20 +19,20 @@ libraries loaded with LoadLibrary/dlopen (not import dependencies) and contain n
 
 | module | lines |
 |---|---|
-| lp | 2280 |
-| mip | 1454 |
-| ipm | 1031 |
+| lp | 2542 |
+| mip | 1444 |
+| ipm | 1056 |
 | pdhg | 1030 |
-| api | 912 |
+| api | 1009 |
 | io | 809 |
+| presolve | 719 |
 | parametric | 687 |
 | util | 674 |
 | cert | 661 |
-| presolve | 661 |
 | gpu | 471 |
 | core | 425 |
-| cli | 276 |
-| router | 230 |
-| **total** | **11601** |
+| cli | 278 |
+| router | 258 |
+| **total** | **12063** |
 
 Result: PASS (0 violations)

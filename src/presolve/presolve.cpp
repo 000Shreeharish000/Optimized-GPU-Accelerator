@@ -208,6 +208,8 @@ bool Presolver::pass(bool mip) {
   // Row  sum a_j x_j <= b  (one finite side), binary x_j with a_j > 0, max activity M:
   // if d = b - (M - a_j) > 0 the row is slack by d whenever x_j = 0, so a_j -= d and
   // b -= d keep every integer point and tighten the LP relaxation. >= rows symmetric.
+  // a_j < 0 (big-M pattern  x - M y <= 0): if d = b - (M + a_j) > 0 the row is slack by d
+  // whenever x_j = 1, so a_j += d (b and M unchanged) shrinks M to the implied bound.
   if (mip) {
     for (int i = 0; i < m && !infeasible_; ++i) {
       if (!rowActive_[i] || fin(rl_[i]) == fin(ru_[i])) continue;
@@ -219,7 +221,18 @@ bool Presolver::pass(bool mip) {
         int j = AT_.index[e];
         if (!colActive_[j] || orig_.colType[j] != VarType::Integer || lo_[j] != 0.0 || up_[j] != 1.0) continue;
         double a = sg * AT_.value[e];
-        if (a <= 0) continue;
+        if (a < 0) {
+          double d = b - (M + a);
+          if (d <= 1e-9 * (1 + std::fabs(b)) || d >= -a - 1e-12) continue;
+          double na = a + d;
+          AT_.value[e] = sg * na;
+          for (int k = orig_.A.start[j]; k < orig_.A.start[j + 1]; ++k)
+            if (orig_.A.index[k] == i) orig_.A.value[k] = sg * na;
+          stats_.coefficientsTightened++;
+          changed = true;
+          continue;
+        }
+        if (a == 0) continue;
         double d = b - (M - a);
         if (d <= 1e-9 * (1 + std::fabs(b)) || d >= a - 1e-12) continue;
         double na = a - d;

@@ -205,6 +205,27 @@ PTEST(mip_miplib_small_optima) {
   }
 }
 
+PTEST(presolve_tightens_big_m) {
+  // max sum(3 x_k - 2 y_k)  s.t.  x_k - 100 y_k <= 0,  x_k in [0, 5],  y_k binary,  sum x_k <= 12.
+  // Big-M 100 must shrink to the implied bound 5; the optimum is unchanged: x = (5, 5, 2), y = 1 -> 36 - 6 = 30.
+  Model m;
+  m.sense = ObjSense::Maximize;
+  for (int k = 0; k < 3; ++k) {
+    m.addColumn(3, 0, 5, {}, {});
+    m.addColumn(-2, 0, 1, {}, {}, VarType::Integer);
+  }
+  for (int k = 0; k < 3; ++k) m.addRow(-kInf, 0, {2 * k, 2 * k + 1}, {1, -100});
+  m.addRow(-kInf, 12, {0, 2, 4}, {1, 1, 1});
+  SolverOptions o;
+  o.logLevel = 0;
+  o.mipRelGap = 0;
+  SolveResult r = solve(m, o);
+  EXPECT(r.status == Status::Optimal);
+  EXPECT_NEAR(r.objective, 30, 1e-9);
+  EXPECT(r.telemetry.at("presolve").at("coefficients_tightened").num() >= 3);
+  EXPECT(r.certificate.accepted);
+}
+
 PTEST(parametric_matches_resolves) {
   Model m = netlib("afiro");
   m.ensureNames();

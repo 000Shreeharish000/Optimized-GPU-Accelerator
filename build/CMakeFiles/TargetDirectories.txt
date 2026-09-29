@@ -1,7 +1,0 @@
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/pramana_core.dir
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/pramana.dir
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/pramana_cli.dir
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/pramana_tests.dir
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/test.dir
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/edit_cache.dir
-C:/Users/Shree Harish V/Desktop/GPU Acceltor/build/CMakeFiles/rebuild_cache.dir

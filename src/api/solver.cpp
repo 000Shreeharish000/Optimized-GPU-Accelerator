@@ -207,7 +207,7 @@ EngineOut raceLp(const Model& work, const SolverOptions& opt, const Deadline* ou
     EngineOut o;
     try {
       o = runLpEngine(eng, work, opt, &dl);
-    } catch (std::exception& e) {
+    } catch (std::exception&) {
       o.status = Status::Error;
       o.engine = eng;
     }

@@ -43,6 +43,7 @@ void usage() {
       "  --tol T               simplex primal/dual feasibility tolerance (scaled)\n"
       "  --pdhg-tol T  --ipm-tol T  --pdhg-iters N\n"
       "  --gap G  --nodes N  --no-cuts  --no-heuristics  --branching reliability|pseudocost|mostfrac|strong\n"
+      "  --mip-threads N       MILP: N concurrent diversified branch-and-cut searches (first proof wins)\n"
       "  --json FILE           write result/certificate/telemetry JSON (--vectors to include x, y, basis)\n"
       "  --cert FILE           write the certificate JSON only\n"
       "  --router-model FILE   calibrated router weights\n"

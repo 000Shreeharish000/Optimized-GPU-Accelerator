@@ -16,13 +16,14 @@ if not exist "%VSWHERE%" (
   echo        Install it, or set PRAMANA_VCVARS to your vcvars64.bat.
   exit /b 1
 )
-for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set VSDIR=%%i
+for /f "usebackq delims=" %%i in (`call "%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set VSDIR=%%i
 set PRAMANA_VCVARS=%VSDIR%\VC\Auxiliary\Build\vcvars64.bat
 :vcvars
 if not exist "%PRAMANA_VCVARS%" (
   echo ERROR: vcvars64.bat not found at "%PRAMANA_VCVARS%"
   exit /b 1
 )
+set "PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
 call "%PRAMANA_VCVARS%" >nul
 
 :build
